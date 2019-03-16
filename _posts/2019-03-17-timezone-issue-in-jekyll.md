@@ -10,10 +10,7 @@ mathjax: true
 
 * content
 {:toc}
-
 在本地使用Jekyll预览刚写好的Blog就遇到了问题...
-
-
 
 
 
@@ -96,3 +93,8 @@ mathjax: true
 **ac酱**
 
 **写于2019-03-17 深夜**
+
+
+> 参考资料：
+* [jekyll不编译_post目录里的md文件](https://ferrisyu.com/2018/03/28/jekyll_not_gen_html.html)
+* [jekyll _config timezone](https://blog.csdn.net/think_ycx/article/details/77460567)
