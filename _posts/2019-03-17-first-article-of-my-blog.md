@@ -3,7 +3,7 @@ layout: post
 title:  "我的第一篇Blog"
 date:   2019-03-17 01:38:12
 categories: 碎碎念
-tags: build blog
+tags: free-talk
 author: ac酱
 mathjax: true
 ---
