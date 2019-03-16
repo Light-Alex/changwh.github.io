@@ -60,4 +60,5 @@ gems: [jekyll-paginate]
 paginate: 6
 
 # to solve skipping:XXXX.md had a future date
-future: true
+# future: true  ---wrong
+timezone: +800
