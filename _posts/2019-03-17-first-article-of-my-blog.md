@@ -3,7 +3,7 @@ layout: post
 title:  "我的第一篇Blog"
 date:   2019-03-17 01:38:12
 categories: 碎碎念
-tags: build blog
+tags: free-talk
 author: ac酱
 mathjax: true
 ---
@@ -17,7 +17,7 @@ mathjax: true
 
 
 
-##第一篇Blog
+## 第一篇Blog
 
 经过一个晚上的折腾，终于把整个Github page部署好了。这第一篇文章，既作为一个测试，也随便记录点什么。
 
