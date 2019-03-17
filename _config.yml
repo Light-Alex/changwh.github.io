@@ -61,4 +61,4 @@ paginate: 6
 
 # to solve skipping:XXXX.md had a future date
 # future: true  ---wrong
-# timezone: Asia/Shanghai
+timezone: Asia/Shanghai

@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "使用Jekyll时遇到的时区问题"
-date:   2019-03-17 12:07:00 +0800
+date:   2019-03-17 12:07:00
 categories: Jekyll
 tags: Jekyll timezone
 author: ac酱
@@ -85,9 +85,13 @@ mathjax: true
 
 似乎有效，jekyll能够读取这两个页面，但是进入页面一看，上面的日期却是错误的，这到底是怎么回事呢？
 
+经过尝试，将`_config.yml`中添加的`timezone: Asia/Shanghai`删除，保留markdown页面中date后添加的`+0800`似乎可行。在本地运行时没有出现错误，但是将页面push到github之后，时间又乱套了，因此应该是本地时间与github时间不一致的问题。于是现在陷入一种尴尬的境地：
+* 在本地运行jekyll时，不对`_config.yml`进行修改，而是在每篇Blog的head中的date添加时区标志，如东八区，则将date写成`date:   2019-03-17 12:07:00 +0800`
+* 将页面部署到github上时，则需要修改`_config.yml`，添加`timezone: Asia/Shanghai`，每篇Blog的head中的date不需要添加时区标志
+
 ## 最后的解决方案
 
-经过尝试，将`_config.yml`中添加的`timezone: Asia/Shanghai`删除，保留markdown页面中date后添加的`+0800`似乎可行。因此最后解决方案是：
+因此最后解决方案是：
 * 不对`_config.yml`进行修改
 * 在每篇Blog的开头日期后添加时区标志，如东八区，则将date写成`date:   2019-03-17 12:07:00 +0800`
 
