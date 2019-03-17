@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "使用Jekyll时遇到的时区问题"
-date:   2019-03-17 12:07:00 +0800
+date:   2019-03-17 16:55:00 +0800
 categories: Jekyll
 tags: Jekyll timezone
 author: ac酱
@@ -89,19 +89,33 @@ mathjax: true
 * 在本地运行jekyll时，不对`_config.yml`进行修改，而是在每篇Blog的head中的date添加时区标志，如东八区，则将date写成`date:   2019-03-17 12:07:00 +0800`
 * 将页面部署到github上时，则需要修改`_config.yml`，添加`timezone: Asia/Shanghai`，每篇Blog的head中的date不需要添加时区标志
 
+又在jekyll的issues页面里翻了翻，发现一个有趣的issue:[Update dependency constraint to allow for tzinfo v2.0.0](https://github.com/jekyll/jekyll/issues/7565)，里面提到了jekyll对tzinfo的版本支持是`1.2.0`，对于最新的`2.0.0`是不支持的。因此联想到使用`jekyll build --verbose`进行debug的时候，显示：
+
+    Requiring: tzinfo
+    Timezone: Asia/Shanghai 00:00
+
+十分异常，根据我的理解，输出的应为`Timezone: Asia/Shanghai +08:00`。尝试降低`tzinfo`版本至`1.2.0`：
+
+    gem uninstall tzinfo
+    gem install tzinfo -v 1.2.0
+
+再次进行debug，输出：
+
+    Requiring: tzinfo
+    Timezone: Asia/Shanghai +08:00
+
+似乎真相大白了。在md文件的头部的date字段修改为`date:   2019-03-17 03:18:00 +0800`后，无论是在本地或是github上，都能正确地显示页面了。但是由于不确定是否就是这个原因引起的这一系列的问题，因此还需要进行一段时间的测试。
+
 ## 暂时的解决方案
 
-部署在本地jekyll上的文件：
-* 不对`_config.yml`进行修改
-* 在每篇Blog的开头日期后添加时区标志，如东八区，则将date写成`date:   2019-03-17 12:07:00 +0800`
-
-上传部署在github上的文件：
+* 将`tzinfo`降级至`1.2.0`
 * 对`_config.yml`进行修改，添加`timezone: Asia/Shanghai`
+* 在每篇Blog的开头日期后添加时区标志，如东八区，则将date写成`date:   2019-03-17 12:07:00 +0800`
 
 
 **ac酱**
 
-**更新于2019-03-17 中午**
+**更新于2019-03-17 下午**
 
 
 > 参考资料：
