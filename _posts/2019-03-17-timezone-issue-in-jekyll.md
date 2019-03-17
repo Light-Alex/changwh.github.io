@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "使用Jekyll时遇到的时区问题"
-date:   2019-03-17 12:07:00
+date:   2019-03-17 12:07:00 +0800
 categories: Jekyll
 tags: Jekyll timezone
 author: ac酱
