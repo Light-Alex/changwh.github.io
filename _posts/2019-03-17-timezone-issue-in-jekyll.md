@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "使用Jekyll时遇到的时区问题"
-date:   2019-03-17 12:07:00 +0800
+date:   2019-03-17 12:07:00
 categories: Jekyll
 tags: Jekyll timezone
 author: ac酱
@@ -89,11 +89,14 @@ mathjax: true
 * 在本地运行jekyll时，不对`_config.yml`进行修改，而是在每篇Blog的head中的date添加时区标志，如东八区，则将date写成`date:   2019-03-17 12:07:00 +0800`
 * 将页面部署到github上时，则需要修改`_config.yml`，添加`timezone: Asia/Shanghai`，每篇Blog的head中的date不需要添加时区标志
 
-## 最后的解决方案
+## 暂时的解决方案
 
-因此最后解决方案是：
+部署在本地jekyll上的文件：
 * 不对`_config.yml`进行修改
 * 在每篇Blog的开头日期后添加时区标志，如东八区，则将date写成`date:   2019-03-17 12:07:00 +0800`
+
+上传部署在github上的文件：
+* 对`_config.yml`进行修改，添加`timezone: Asia/Shanghai`
 
 
 **ac酱**

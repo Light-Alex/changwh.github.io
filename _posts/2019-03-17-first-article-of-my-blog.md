@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "我的第一篇Blog"
-date:   2019-03-17 01:38:00 +0800
+date:   2019-03-17 01:38:00
 categories: 碎碎念
 tags: free-talk
 author: ac酱
