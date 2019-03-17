@@ -30,7 +30,7 @@ mathjax: true
 
         Generating: Jekyll::Paginate::Pagination finished in 0.000929 seconds.
 
-可知这个文件由于拥有一个**未来**的日期而被跳过了，因此推出是时间设定上出现了问题。在百度上查了些资料，发现在`_config.yml`中添加：
+可知这个文件由于拥有一个**未来**的日期而被跳过了，因此推测是时间设定上出现了问题。在百度上查了些资料，发现在`_config.yml`中添加：
 
     future: true
 
