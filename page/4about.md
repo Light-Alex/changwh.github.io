@@ -26,6 +26,6 @@ type: page
 
 **Hail to Gaohaoyang!**
 
-## Comments
+<!-- ## Comments -->
 
 <!-- {% include comments.html %} -->
