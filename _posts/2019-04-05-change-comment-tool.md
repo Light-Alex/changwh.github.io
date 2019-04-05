@@ -25,6 +25,7 @@ Authorization callback URL 一定要写自己Github Pages的URL.
 填写完上述信息后按Register application按钮，得到`Client ID`和`Client Secret`.
 ### 修改代码进行调用
 在每个需要加入gitment的页面下添加代码：
+{% raw %}
 ```html
 <div id="gitmentContainer"></div> 
 <script src="https://cdn.jsdelivr.net/gh/theme-next/theme-next-gitment@1/gitment.browser.js"></script>
@@ -42,7 +43,7 @@ Authorization callback URL 一定要写自己Github Pages的URL.
     gitment.render('gitmentContainer')
 </script>
 ```
-
+{% endraw %}
 如果使用的blog框架支持批量添加评论栏，就在相应的文件中进行添加。如我使用的这个框架，只需要在`_includes/comments.html`中添加即可。
 
 之后在`_config.yml`中添加相应的用户信息，根据上面的代码，我们可知需要添加的信息为：`github_username`,`comment_gitment_repo`,`comment_gitment_clientId`,`comment_gitment_clientSecret`。因此在`_config.yml`中添加：
