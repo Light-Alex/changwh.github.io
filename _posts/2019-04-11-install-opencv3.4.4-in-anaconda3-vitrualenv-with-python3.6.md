@@ -10,7 +10,7 @@ mathjax: true
 
 * content
 {:toc}
-在python中使用opencv一直以来都是一件相对麻烦的事情，通过pip安装，经常有部分功能无法使用，通过conda安装，目前有一种方法能在我的环境中正常使用，但是最佳的方法，还是通过源代码编译，得到最适合自己环境的opencv包。现将在ubuntu18.04 + anaconda3 + python3.6环境下安装opencv3.4.4的过程做一个记录，以便将来的不时之需。
+在python中使用opencv一直以来都是一件相对麻烦的事情，通过pip安装，经常有部分功能无法使用，通过anaconda安装，目前有一种方法能在我的环境中正常使用，但是最佳的方法，还是通过源代码编译，得到最适合自己环境的opencv包。现将在`ubuntu18.04 + anaconda3 + python3.6`环境下编译安装`opencv3.4.4`的过程做一个记录，以便将来的不时之需。
 
 
 
@@ -18,10 +18,10 @@ mathjax: true
 ```bash
 conda install py-opencv=3.4.2 # ubuntu18.04 python3.6
 ```
-通过这种方法能够在conda中安装其他人编译好的opencv，是安装opencv最简单有效的方法。
+通过这种方法能够在anaconda中安装其他人编译好的opencv，是安装opencv最简单有效的方法。
 ## 二、使用源代码编译
 ### 1.确保本机环境为ubuntu18.04
-目前只在ubuntu18.04中进行过测试，不能保证本安装过程适用于其他版本的ubuntu。
+目前只在`ubuntu18.04`中进行过测试，不能保证本安装过程适用于其他版本的ubuntu。
 ### 2.安装opencv的依赖项
 ```bash
 $ sudo apt-get update
@@ -75,13 +75,20 @@ cmake -D CMAKE_BUILD_TYPE=RELEASE \
  -D BUILD_EXAMPLES=ON \
  -D BUILD_opencv_python3=ON\
  -D BUILD_opencv_python2=OFF\
- -D PYTHON3_EXCUTABLE=~/anaconda3/cv/chinese-ocr/bin/python3\
- -D PYTHON3_INCLUDE_DIR=~/anaconda3/cv/chinese-ocr/include/python3.6m\
- -D PYTHON3_LIBRARY=~/anaconda3/cv/chinese-ocr/lib/libpython3.6m.a\
- -D PYTHON_NUMPY_PATH=~/anaconda3/cv/chinese-ocr/lib/python3.6/site-packages ..
+ -D PYTHON3_EXCUTABLE={your_virtualenv_location}/cv/bin/python3\
+ -D PYTHON3_INCLUDE_DIR={your_virtualenv_location}/cv/include/python3.6m\
+ -D PYTHON3_LIBRARY={your_virtualenv_location}/cv/lib/libpython3.6m.a\
+ -D PYTHON_NUMPY_PATH={your_virtualenv_location}/cv/lib/python3.6/site-packages ..
 ```
-注意：涉及python位置的配置需要根据具体情况调整！这是整个安装过程中最关键的一步！！！
+注意：涉及`{your_virtualenv_location}`的配置需要根据具体情况调整！这是整个安装过程中最关键的一步！！！
 
+在cmake过程中，将会下载从github上下载两个文件，由于下载速度过慢，有时会出现超时的情况，因此需要手动下载:
+>[ippicv](https://github.com/opencv/opencv_3rdparty/tree/ippicv/master_20180723/ippicv)
+>
+>[face_landmark_model.dat](https://github.com/opencv/opencv_3rdparty/blob/contrib_face_alignment_20170818/face_landmark_model.dat)
+
+
+注意:ippicv需要根据系统版本及CPU类型进行选择。之后在`～/opencv/build/.cache/`找到下载失败的文件，进行替换，注意文件名前需加上MD5，即使用下载失败的文件的文件名重命名手动下载的文件。
 ```bash
 $ make -j8
 ```
@@ -105,7 +112,7 @@ cv2.cpython-36m-x86_64-linux-gnu.so
 $ cd /usr/local/python/cv2/python-3.6
 $ sudo mv cv2.cpython-36m-x86_64-linux-gnu.so cv2.so
 
-$ cd ~/anaconda3/cv/chinese-ocr/lib/python3.6/site-packages
+$ cd {your_virtualenv_location}/cv/lib/python3.6/site-packages
 $ ln -s /usr/local/python/cv2/python-3.6/cv2.so cv2.so
 ```
 验证opencv是否安装成功
@@ -118,10 +125,10 @@ $ python
 '3.4.4'
 >>> quit()
 ```
-注意：若此处出现ImportError: libfontconfig.so.1: undefined symbol: FT_Done_MM_Var，需要将/anaconda3/lib/下的libfontconfig*文件禁用或删除
+注意：若此处出现`ImportError: libfontconfig.so.1: undefined symbol: FT_Done_MM_Var`，需要将`{your_anaconda_location}/lib/`下的`libfontconfig*`文件禁用或删除
 ```bash
-$ cd ~/anaconda3/lib
-$ delete libfontconfig*
+$ cd {your_anaconda_location}/lib
+$ rm -rf libfontconfig*
 ```
 
 清理安装过程文件
@@ -139,4 +146,4 @@ $ rm -rf opencv opencv_contrib
 > 参考资料
 * [ubuntu18.04LTS+Anaconda3+cmake编译安装opencv3.4.3](https://www.jianshu.com/p/6478b318cd8f)
 * [Ubuntu 18.04: How to install OpenCV](https://www.pyimagesearch.com/2018/05/28/ubuntu-18-04-how-to-install-opencv/)
-*[make -j4 or -j8](https://stackoverflow.com/questions/15289250/make-j4-or-j8)
+* [make -j4 or -j8](https://stackoverflow.com/questions/15289250/make-j4-or-j8)
