@@ -14,9 +14,17 @@ mathjax: true
 
 
 
-#CTPN流程概括
+## CTPN流程概括
 
-![](https://images2015.cnblogs.com/blog/1058268/201701/1058268-20170112203504978-1308296948.png)
+<center>
+<img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2019-06-02-ctpn-paper-reading/architecture.jpg" />
+<div>CTPN整体结构</div>
+</center>
+
+<center>
+<img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2019-06-02-ctpn-paper-reading/model_code.jpg" />
+<div>代码实现</div>
+</center>
 
 * 以VGG16为预训练模型，用于输入图片的特征提取，使用经过其最后一个卷积层（VGG论文中conv3-512）得到的特征图，大小为W*H*C
 * 在特征图的每个像素点上使用3*3*C的滑动窗口提取进一步特征，用于RPN
