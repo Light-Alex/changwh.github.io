@@ -3,7 +3,7 @@ layout: post
 title:  "CTPN论文的阅读与学习"
 date:   2019-06-02 12:00:00 +0800
 categories: cv
-tags: gitment
+tags: CTPN
 author: ac酱
 mathjax: true
 ---
@@ -16,7 +16,7 @@ mathjax: true
 
 #CTPN流程概括
 
-![test](_posts/res/2019-06-02-ctpn-paper-reading/architecture.jpg)
+![architecture](https://github.com/changwh/changwh.github.io/blob/master/_posts/res/2019-06-02-ctpn-paper-reading/architecture.jpg)
 
 * 以VGG16为预训练模型，用于输入图片的特征提取，使用经过其最后一个卷积层（VGG论文中conv3-512）得到的特征图，大小为W*H*C
 * 在特征图的每个像素点上使用3*3*C的滑动窗口提取进一步特征，用于RPN
