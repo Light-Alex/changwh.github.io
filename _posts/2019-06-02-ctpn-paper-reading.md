@@ -15,6 +15,7 @@ mathjax: true
 
 
 #CTPN流程概括
+
 ![test](_posts/res/2019-06-02-ctpn-paper-reading/architecture.jpg)
 
 * 以VGG16为预训练模型，用于输入图片的特征提取，使用经过其最后一个卷积层（VGG论文中conv3-512）得到的特征图，大小为W*H*C
