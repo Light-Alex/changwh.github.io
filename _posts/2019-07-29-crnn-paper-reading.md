@@ -137,9 +137,6 @@ CRNN集成了CNN和RNN的优点，能够获取不同尺寸的输入图像，产�
 * [CRNN论文提供的代码实现](https://github.com/bgshih/crnn)
 
 > 后续计划
-
 * 1.测试原论文中的参数与修改后参数的效果区别
-
 * 2.阅读CTC论文
-
 * 3.了解BK-tree
