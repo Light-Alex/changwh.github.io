@@ -32,6 +32,10 @@ https://www.pyimagesearch.com/2018/05/28/ubuntu-18-04-how-to-install-opencv/
 
 https://blog.csdn.net/syshzbtt/article/details/84955251
 
+5.ubuntu通过deepin-wine使用windows常用软件
+
+https://github.com/wszqkzqk/deepin-wine-ubuntu
+
 ## 教程
 
 <!-- {% include comments.html %} -->
