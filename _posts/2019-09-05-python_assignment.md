@@ -2,7 +2,7 @@
 layout: post
 title:  "python中的赋值"
 date:   2019-09-05 10:15:00 +0800
-categories: python tips
+categories: python_tips
 tags: python 赋值
 author: ac酱
 mathjax: true
