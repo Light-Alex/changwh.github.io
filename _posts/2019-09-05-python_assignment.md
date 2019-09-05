@@ -107,7 +107,7 @@ n_list
 ```
 和之前类似，names和n_list都是['a', 'b', 'c']上的标签，只是列表对象中的第0个元素被重新赋值了，但是两个标签依然贴在这个列表对象上，虽然列表对象的值更新了，但是对象依然是原来的对象。
 
-## python中的“多元”赋值
+## python中的“多元”赋值(有错误，待修改)
 
 python中存在另一种将多个变量同时赋值的方法，我们称为多元赋值（multuple，将 "mul-tuple"连在一起自造的)。因为采用这种方式赋值时，等号两边的对象都是元组。
 ```python
@@ -175,10 +175,11 @@ print(bar)
 
 **ac酱**
 
-**完成于2019-09-05 中午**
+**to be continued**
 
 > 参考资料：
 * [图解Python变量与赋值](https://foofish.net/python-variable.html)
 * [python——赋值与深浅拷贝](https://www.cnblogs.com/Eva-J/p/5534037.html)
 * [python 关于连续赋值的简单工作原理？ - yonggege的回答 - 知乎](https://www.zhihu.com/question/46505057/answer/227007709)
 * [Python连续赋值的内部原理](https://imliyan.com/blogs/article/Python%E8%BF%9E%E7%BB%AD%E8%B5%8B%E5%80%BC%E7%9A%84%E5%86%85%E9%83%A8%E5%8E%9F%E7%90%86/)
+* [dis — Disassembler for Python bytecode](https://docs.python.org/3/library/dis.html)
