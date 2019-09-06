@@ -107,7 +107,7 @@ n_list
 ```
 和之前类似，names和n_list都是['a', 'b', 'c']上的标签，只是列表对象中的第0个元素被重新赋值了，但是两个标签依然贴在这个列表对象上，虽然列表对象的值更新了，但是对象依然是原来的对象。
 
-## python中的“多元”赋值(有错误，待修改)
+## python中的“多元”赋值
 
 python中存在另一种将多个变量同时赋值的方法，我们称为多元赋值（multuple，将 "mul-tuple"连在一起自造的)。因为采用这种方式赋值时，等号两边的对象都是元组。
 ```python
@@ -115,11 +115,52 @@ x, y, z = 1, 2, 'a string'
 # 等同于 (x, y, z) = (1, 2, 'a string')
 ```
 
-这样一来，问题也能得到解释了。
+    这样一来，问题也能得到解释了。
+    ```python
+    pre.right, node.left, node = node, None, node.left
+    ```
+    首先先对赋值符号右边的序列封装成元组，之后再将该元组进行拆分，对应地赋值给左边的变量。由于封装元组的操作在赋值之前，因此赋值时进行无论变量如何改变，都不会影响到已经封装好的元组。
+
+看似十分有道理，但是当我们使用dis模块进行验证的时候，发现事情并不是这么简单。
+
 ```python
-pre.right, node.left, node = node, None, node.left
+import dis
+dis.dis("pre.right, node.left, node = node, None, node.left")
 ```
-首先先对赋值符号右边的序列封装成元组，之后再将该元组进行拆分，对应地赋值给左边的变量。由于封装元组的操作在赋值之前，因此赋值时进行无论变量如何改变，都不会影响到已经封装好的元组。
+```
+  1           0 LOAD_NAME                0 (node)
+              2 LOAD_CONST               0 (None)
+              4 LOAD_NAME                0 (node)
+              6 LOAD_ATTR                1 (left)
+              8 ROT_THREE
+             10 ROT_TWO
+             12 LOAD_NAME                2 (pre)
+             14 STORE_ATTR               3 (right)
+             16 LOAD_NAME                0 (node)
+             18 STORE_ATTR               1 (left)
+             20 STORE_NAME               0 (node)
+             22 LOAD_CONST               0 (None)
+             24 RETURN_VALUE
+```
+可以看到，这里并没有把赋值号右侧的序列封装成元组，而是按从左到右的顺序分别把他们压入栈中，然后经过`ROT_THREE`和`ROT_TWO`操作后，使他们在栈中的位置完全颠倒，再根据赋值符号左侧的变量依次赋值。
+
+```python
+dis.dis("x, y, z = 1, 2, 'a string'")
+```
+```
+  1           0 LOAD_CONST               4 ((1, 2, 'a string'))
+              2 UNPACK_SEQUENCE          3
+              4 STORE_NAME               0 (x)
+              6 STORE_NAME               1 (y)
+              8 STORE_NAME               2 (z)
+             10 LOAD_CONST               3 (None)
+             12 RETURN_VALUE
+```
+而像这样赋值号右侧都为常量的，则会将其封装为元组，再进行序列拆分。
+
+当赋值符号右侧含有非常量，且数量大于3时，则会进行`BUILD_TUPLE`和`UNPACK_SEQUENCE`操作。这样是因为`ROT_THREE`和`ROT_TWO`无法对数量大于3的栈顶元素进行翻转。
+
+    由此可以猜测`BUILD_TUPLE`和`UNPACK_SEQUENCE`的复杂度要大于`ROT_THREE`和`ROT_TWO`，否则为什么在变量个数少于3的情况下还要特意使用`ROT_THREE`和`ROT_TWO`呢？
 
 利用这种特性，我们能将常用的变量交换的操作，从原来的3行代码压缩到1行：
 ```python
@@ -175,7 +216,7 @@ print(bar)
 
 **ac酱**
 
-**to be continued**
+**完成于2019-09-06 中午**
 
 > 参考资料：
 * [图解Python变量与赋值](https://foofish.net/python-variable.html)
