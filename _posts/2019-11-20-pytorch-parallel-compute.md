@@ -67,7 +67,7 @@ for data in rand_loader:
 
 通过实际运行，确实可以得到文档中的结果。但是，从别处看到的许多pytorch多卡训练的代码和官方文档中的有稍许不同，主要是模型和输入数据的分发方式，因此我们修改代码进行实验，并且试图找到之前提出的那个问题的答案。
 
-修改模型与数据的分发函数，文档中的是通过to(device)进行模型与数据的分发的。这里我们首先通过打印整个batch的输入及输出和每个gpu中模型的输入及输出验证一下to(device)是如何对数据进行分发的。通过观察运行结果，可以得出结论，to(device)直接将输入数据对半分为两部分，第一部分作为device='cuda:0'的输入，第二部分作为device='cuda:1'的输入，之后分别将两个device的输出按照相同顺序拼接成最终的输出，放置到device='cuda:0'上。
+修改模型与数据的分发函数，文档中的是通过to(device)进行模型与数据的分发的。这里我们首先通过打印整个batch的输入及输出和每个gpu中模型的输入及输出验证一下to(device)是如何对数据进行分发的。通过观察运行结果，可以得出结论，`torch.nn.DataParallel()包装后的模型会将输入数据对半分为两部分，第一部分作为device='cuda:0'的输入，第二部分作为device='cuda:1'的输入，之后分别将两个device的输出按照相同顺序拼接成最终的输出，放置到device='cuda:0'上。`实际上to(device)并不会将数据或者模型进行指定设备以外的分发。
 
 在官方文档中，可以查询到cuda()也可将所有模型参数和缓冲区移动到图形处理器。将to(device)修改为cuda()，再次运行程序，结果同to(device)。再次修改为cuda(0)，指定为0号设备，结果依然相同。
 
@@ -110,6 +110,8 @@ model = nn.DataParallel(model.cuda(1),[1,0])
 1. 使用torch.nn.DataParallel()包装需要进行并行计算的模型，注意参数devices_id用于指定进行运算的gpu，默认值为检测到的所有可用gpu，output_device用于指定输出的gpu，默认值为device_ids[0]。
 2. 输入数据进入模型进行计算时似乎会自动由device:cpu,type:torch.FloatTensor，转换为device:cuda:0,type:torch.cuda.FloatTensor(待验证)，保险起见还是将其同样分发给经过torch.nn.DataParallel()包装的模型的device_ids[0]。
 3. 所有cuda()都可以被to(device)替换。
+4. 加载预训练模型时，如果原来的权重是由单卡训练得到的，可能需要对OrderedDict的key进行修改。
+5. 由于torch.nn.DataParallel()会将各个gpu的计算结果暴力地堆叠起来，所以如果你的模型的forward()中使用了permute()进行维度换位，需要特别注意。举个例子，在不使用torch.nn.DataParallel()的crnn中，cnn的输出为[32,512,65]，经过permute(2,0,1)之后，变为[65,32,512]输入到rnn中，最后得到输出[65,32,5530]。我们可以明显的看出，在这次的训练中，batchsize为32。但是当使用torch.nn.DataParallel()包装crnn之后，模型最后的输出却是[130,16,5530]。也就是说，在torch.nn.DataParallel()处理输出数据时，默认的将输出tensor的第一维度视为batchsize。因此将两张gpu上的输出数据进行合并时，会使输出tensor的第一维度数值翻倍。这与我们的预期不符。那么应该怎么做呢，只要保证被torch.nn.DataParallel()包装的整个模型的输出tensor的第一个维度为batchsize，之后再根据需要使用permute()进行维度换位就行了。
 
 **ac酱**
 
