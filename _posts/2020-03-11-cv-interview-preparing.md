@@ -52,7 +52,8 @@ Conv2阶段：
 Conv3阶段：  
 卷积：  
 输入：13×13×256，卷积核：3×3×256，卷积核个数：384，步长：1，padding：same（1×1），输出：13×13×384  
-激活函数：relu  
+激活函数：relu
+
 Conv4阶段：  
 卷积：  
 输入：13×13×384，卷积核：3×3×384，卷积核个数：384，步长：1，padding：same（1×1），输出：13×13×384  
@@ -83,7 +84,7 @@ dropout：0.5
 
 FC8阶段：
 输入：4096，输出：1000  
-激活函数:softmax-crossentropy
+损失函数:softmax-crossentropy
 
 结构上重要的改进：  
 * 使用ReLU激活函数：ReLU(x)=max(x,0)，具体在[激活函数](#激活函数)部分讲解。  
@@ -166,6 +167,62 @@ LeNet有一个很有趣的地方，就是S2层与C3层的连接方式。在原�
 池化卷积均可用此公式计算，注意横向、纵向有所区别时需各自计算，有时四边padding不同也需注意。
 ### 参数初始化方法
 ### Dropout
+在机器学习的模型中，如果模型的参数太多，而训练样本又太少，训练出来的模型很容易产生过拟合的现象。  
+Dropout可以比较有效的缓解过拟合的发生，在一定程度上达到正则化的效果。  
+Dropout在每个训练批次中，通过忽略一部分的特征检测器（让一部分的隐层节点值为0），可以明显地减少过拟合现象。这种方式可以减少特征检测器（隐层节点）间的相互作用，检测器相互作用是指某些检测器依赖其他检测器才能发挥作用。  
+Dropout简单的说就是：在前向传播的时候，让某个神经元的激活值以一定的（丢弃）概率p停止工作，这样可以使模型泛化性更强，因为它不会太依赖某些局部的特征。
+<center>
+<img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2020-03-11-cv-interview-preparing/8.jpg" />
+<div>Dropout</div>
+</center>
+
+具体流程：  
+1. 首先根据Dropout的（丢弃）概率p随机临时地删除网络中的部分隐藏神经元，即节点值暂时置为0。  
+2. 然后将输入x送入到经过Dropout处理后的网络进行前向传播，然后把得到的损失结果在处理后的网络中反向传播。一小批训练样本执行完这个过程后，在没有被删除的神经元上按照随机梯度下降法更新对应的参数（w，b）。  
+3. 恢复被删掉的神经元（此时被删除的神经元保持原样，而没有被删除的神经元已经有所更新）。  
+不断重复上述过程。
+
+显然，被Dropout丢弃的神经元在该批次的学习中不参与前向传播和后向传播，在该批次学习结束后恢复原值，进入下一个学习批次。
+
+在实践中通常有两种处理方式，一种是在训练时根据Dropout概率p随机丢弃节点（实际上也可丢弃节点对应的输入值），并对输入值乘以1/(1-p)进行放大；另一种是在训练时根据Dropout概率p随机丢弃节点，但不对输入进行缩放，而是在预测时对所有节点的权重乘以p进行缩小。前者将数值运算放在训练阶段，能够减小测试阶段的计算量，提升速度，称为inverted dropout。
+
+训练时处理：
+<center>
+<img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2020-03-11-cv-interview-preparing/9.jpg" />
+<div>添加Dropout后计算流程对比</div>
+</center>
+
+<center>
+<img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2020-03-11-cv-interview-preparing/10.jpg" />
+<div>无Dropout的计算公式</div>
+</center>
+
+<center>
+<img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2020-03-11-cv-interview-preparing/11.jpg" />
+<div>添加Dropout的计算公式</div>
+</center>
+
+其中Bernoulli函数即为0-1分布发生器，随机生成一个0、1向量。假设将Dropout的概率p设置为0.4，即有40%的神经元的值置为0（丢弃40%的神经元），那么得到的z的值将为原来的60%（剩余60%的神经元）。因此我们通常需要对y进行放大，乘以1/(1-p)，这里即为乘以5/3。如果未在训练时对y进行放大，那么在测试时就需要对权重进行缩小。
+
+测试时处理：
+<center>
+<img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2020-03-11-cv-interview-preparing/12.jpg" />
+<div>对每一个神经元权重乘以p进行缩放</div>
+</center>
+
+防止过拟合的原理：
+1. 取平均的作用  
+Dropout过程就相当于对很多个不同的神经网络取平均。  
+我们用相同的训练数据去训练5个不同的神经网络，一般会得到5个不同的结果，此时我们可以采用 “5个结果取均值”或者“多数取胜的投票策略”去决定最终结果。
+2. 减少神经元之间复杂的共适应关系  
+Dropout导致两个神经元不一定每次都在一个Dropout网络中出现。这样权值的更新不再依赖于有固定关系的隐含节点的共同作用，迫使网络去学习更加鲁棒的特征。
+3. 相当于对样本增加噪声  
+观点十分明确，就是对于每一个Dropout后的网络，进行训练时，相当于做了Data Augmentation，因为，总可以找到一个样本，使得在原始的网络上也能达到Dropout单元后的效果。比如，对于某一层，Dropout一些单元后，形成的结果是(1.5,0,2.5,0,1,2,0)，其中0是被drop的单元，那么总能找到一个样本与Dropout后的结果相同。这样，每一次Dropout其实都相当于增加了样本。
+
+总的来说，由于Dropout是随机丢弃，故而相当于每一个mini-batch都在训练不同的网络，可以有效防止模型过拟合，让网络泛化能力更强，同时由于减少了网络复杂度，加快了运算速度。还有一种观点认为Dropout有效的原因是对样本增加来噪声，变相增加了训练样本。  
+Dropout通常用于全连接层中和输入层中，很少见到卷积层后接Dropout，原因主要是卷积参数少，不易过拟合。
+
+
 ### 激活函数
 #### ReLU
 <center>
@@ -173,7 +230,7 @@ LeNet有一个很有趣的地方，就是S2层与C3层的连接方式。在原�
 <div>ReLU</div>
 </center>
 
-\begin{equation} ReLU(x)=max{0,x}, \end{equation}
+\begin{equation} ReLU(x)=max{0,x} \end{equation}
 
 这个激活函数应该是在实际应用中最广泛的一个。
 
@@ -189,7 +246,7 @@ LeNet有一个很有趣的地方，就是S2层与C3层的连接方式。在原�
 有两个主要原因可能导致这种情况产生: (1) 非常不幸的参数初始化，这种情况比较少见 (2) learning rate太高导致在训练过程中参数更新太大，不幸使网络进入这种状态。  
 解决方法是可以采用MSRA初始化方法，以及避免将learning rate设置太大或使用adagrad等自动调节learning rate的算法。
 
-#### softmax
+#### Softmax
 
 ### 损失函数
 ### 优化器
@@ -217,3 +274,16 @@ LeNet有一个很有趣的地方，就是S2层与C3层的连接方式。在原�
 * [](https://blog.csdn.net/kuweicai/article/details/102789420)
 
 * [](https://blog.csdn.net/kuweicai/article/details/93926393)
+* [](https://blog.csdn.net/program_developer/article/details/80737724)
+
+
+
+https://blog.csdn.net/program_developer/article/details/80737724
+https://blog.csdn.net/kuweicai/article/details/93926393
+https://blog.csdn.net/kuweicai/article/details/102789420
+https://zhuanlan.zhihu.com/p/88946608
+https://zhuanlan.zhihu.com/p/31006686
+https://zhuanlan.zhihu.com/p/73688224
+https://zhuanlan.zhihu.com/p/47391705
+https://zhuanlan.zhihu.com/p/22659166
+https://zhuanlan.zhihu.com/p/93069133
