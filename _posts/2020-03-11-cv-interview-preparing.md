@@ -69,10 +69,10 @@ Conv5阶段：
 FC6阶段：  
 输入：6×6×256，flatten:[-1,9216]，输出：4096  
 激活函数：relu  
-dropout：0.5
+Dropout：0.5
 
 > 一说：  
-第6层采用6\*6\*256尺寸的滤波器对输入数据进行卷积运算；每个6\*6\*256尺寸的滤波器对第六层的输入数据进行卷积运算生成一个运算结果，通过一个神经元输出这个运算结果；共有4096个6\*6\*256尺寸的滤波器对输入数据进行卷积，通过4096个神经元的输出运算结果；然后通过ReLU激活函数以及dropout运算输出4096个本层的输出结果值。  
+第6层采用6\*6\*256尺寸的滤波器对输入数据进行卷积运算；每个6\*6\*256尺寸的滤波器对第六层的输入数据进行卷积运算生成一个运算结果，通过一个神经元输出这个运算结果；共有4096个6\*6\*256尺寸的滤波器对输入数据进行卷积，通过4096个神经元的输出运算结果；然后通过ReLU激活函数以及Dropout运算输出4096个本层的输出结果值。  
 很明显在第6层中，采用的滤波器的尺寸（6\*6\*256）和待处理的feature map的尺寸（6\*6\*256）相同，即滤波器中的每个系数只与feature map中的一个像素值相乘；而采用的滤波器的尺寸和待处理的feature map的尺寸不相同，每个滤波器的系数都会与多个feature map中像素相乘。因此第6层被称为全连接层。
 
 >但是现在找到的源码基本都是直接将最后一个卷积层的输出降维，作为全连接层的输入，因此这一说法有待考证。
@@ -80,7 +80,7 @@ dropout：0.5
 FC7阶段：
 输入：4096，输出：4096  
 激活函数：relu  
-dropout：0.5
+Dropout：0.5
 
 FC8阶段：
 输入：4096，输出：1000  
@@ -88,7 +88,7 @@ FC8阶段：
 
 结构上重要的改进：  
 * 使用ReLU激活函数：ReLU(x)=max(x,0)，具体在[激活函数](#激活函数)部分讲解。  
-* 0.5概率的dropout来对抗过拟合，具体在[Dropout](#Dropout)部分讲解。  
+* 0.5概率的Dropout来对抗过拟合，具体在[Dropout](#dropout)部分讲解。  
 * LRN（局部响应归一化层，Local Response Normalization Layer）  
     LRN模拟神经生物学上一个叫做 侧抑制（lateral inhibitio）的功能，侧抑制指的是被激活的神经元会抑制相邻的神经元。  
     引入这一层的主要目的，主要是为了防止过拟合，增加模型的泛化能力。  
@@ -278,8 +278,9 @@ Dropout通常用于全连接层中和输入层中，很少见到卷积层后接D
 
 
 
-https://blog.csdn.net/program_developer/article/details/80737724
+
 https://blog.csdn.net/kuweicai/article/details/93926393
+https://blog.csdn.net/GreatXiang888/article/details/99296607
 https://blog.csdn.net/kuweicai/article/details/102789420
 https://zhuanlan.zhihu.com/p/88946608
 https://zhuanlan.zhihu.com/p/31006686
@@ -287,3 +288,8 @@ https://zhuanlan.zhihu.com/p/73688224
 https://zhuanlan.zhihu.com/p/47391705
 https://zhuanlan.zhihu.com/p/22659166
 https://zhuanlan.zhihu.com/p/93069133
+
+
+https://blog.csdn.net/GreatXiang888/article/details/99310164
+https://blog.csdn.net/GreatXiang888/article/details/99293507
+https://blog.csdn.net/GreatXiang888/article/details/99221246
