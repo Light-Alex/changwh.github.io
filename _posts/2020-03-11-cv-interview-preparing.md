@@ -30,7 +30,7 @@ CV方向知识点汇总
 <div>AlexNet</div>
 </center>
 
-网络的输入是227×227×3的图像，网络一共有八层，其中前五个是卷基层，后3个是全连接层。  
+网络的输入是227×227×3（论文中为224×224×3，但由于是通过裁剪，不然直接裁剪为227×227×3，免去后续的补边，Caffe也是如此修改的）的图像，网络一共有八层，其中前五个是卷基层，后3个是全连接层。  
 可能由于当时GPU连接间的处理限制， AlexNet使用两个单独的GPU在 ImageNet数据库上执行训练，因此常常能看到将其拆分为两个网络的结构示意图，每一部分的kernel数量为实际kernel数量的一半。第二，第四和第五个卷积层的内核仅与上一层存放在同一GPU上的内核映射相连。第三个卷积层的内核连接到第二层中的所有内核映射。全连接层中的神经元连接到前一层中的所有神经元。
 
 Conv1阶段:  
@@ -103,9 +103,18 @@ FC8阶段：
     具体方法是在某一确定位置(x,y)将前后各2/n个feature map求和作为下一层的输入。但是存在争论，说LRN Layer其实并没有什么效果，在这里不讨论。
 * Overlapping Pooling  
     传统的卷积层中，相邻的池化单元是不重叠的，即步长等于池化窗口的尺寸。AlexNet中由于步长小于池化窗口的尺寸，因此相邻的池化窗口间存在重叠的部分。实验结果显示这样的池化方法相比于传统池化方法对准确率有略微的提升。
+### VGG(2014)
+<center>
+<img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2020-03-11-cv-interview-preparing/13.jpg" />
+<div>VGG</div>
+</center>
+
+<center>
+<img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2020-03-11-cv-interview-preparing/14.jpg" />
+<div>VGG</div>
+</center>
 
 
-### VGG
 ### GoogleNet
 ### Xception
 ### Inception
@@ -148,8 +157,6 @@ LeNet有一个很有趣的地方，就是S2层与C3层的连接方式。在原�
 
 规定左上角为(0,0)，右下角为(5,15)，那么在(n,m)位置的“X”表示S2层的第n个feature map与C3层的第m个kernel进行卷积操作。例如说，C3层的第0个kernel只与S2层的前三个feature map有连接，与其余三个feature map是没有连接的；C3层的第15个kernel与S2层的所有feature map都有连接。这难道不就是ShuffleNet？
 
-
-
 ## 目标检测发展历程
 
 ## 实例分割
@@ -157,15 +164,66 @@ LeNet有一个很有趣的地方，就是S2层与C3层的连接方式。在原�
 ## 目标识别
 
 ## 网络中的各种细节
-### 感受野计算
-### FLOPs计算
-### 参数量计算
+### 神经元数量计算
+输出维度是多少，神经元就有多少。如AlexNet的第一个卷积层输出为55×55×96，那么就有55×55×96=290400个神经元。
+
 ### 输入输出尺寸计算
 输出_w=(输入_w-kernel_w+padding_l+padding_r)/stride_w+1  
 输出_h=(输入_h-kernel_h+padding_t+padding_b)/stride_h+1
 
 池化卷积均可用此公式计算，注意横向、纵向有所区别时需各自计算，有时四边padding不同也需注意。
+
+### 参数量计算
+* 卷积网络
+
+    参数量 = (卷积核_w × 卷积核_h × 输入channel数 + 1) × 输出channel数
+    
+    括号内的为一个卷积核的参数量，+1表示bias，使用Batch Normalization时不需要bias，此时计算式中的+1项去除。
+
+* 全连接网络
+
+    参数量 = (输入神经元数量 + 1) × 输出神经元数量
+
+    每一个输出神经元连接着所有输入神经元，且每个输出神经元还要加一个bias。
+
+### FLOPs（floating point of operations，浮点运算数）计算
+* 卷积网络
+
+    FLOPs = [(输入channel数 × 卷积核_w × 卷积核_h) + (输入channel数 × 卷积核_w × 卷积核_h - 1) + 1] × 输出_w × 输出_h × 输出channel数  
+    = 2 × 输入channel数 × 卷积核_w × 卷积核_h × 输出_w × 输出_h × 输出channel数
+
+    (输入channel数 × 卷积核_w × 卷积核_h)表示一次卷积操作中的乘法运算量，(输入channel数 × 卷积核_w × 卷积核_h - 1)表示一次卷积操作中的加法运算量，+1表示bias，每个输出的神经元都对应一次卷积计算，因此需要乘于输出_w × 输出_h × 输出channel数。  
+    在计算机视觉论文中，常常将一个‘乘-加’组合视为一次浮点运算，英文表述为'Multi-Add'，运算量正好是上面的算法减半，此时的运算量为：
+
+    FLOPs = 输入channel数 × 卷积核_w × 卷积核_h × 输出_w × 输出_h × 输出channel数
+
+* 全连接网络
+
+    FLOPs = [输入神经元数量 + (输入神经元数量 - 1) + 1] × 输出神经元数量
+
+    中括号的值表示计算出一个神经元所需的运算量：要得到一个输出神经元，需要对每个输入神经元做一次乘法，再将乘法得到的结果进行求和，即(输入神经元数量 - 1)次加法运算，+1表示bias。
+
+### 链接数计算
+* 卷积网络
+
+    链接数 = 局部连接的输入层神经元数（输入channel数 × 卷积核_w × 卷积核_h + 1） × 卷积层神经元数（输出_w × 输出_h × 输出channel数）
+
+* 全连接网络
+
+    链接数 = (输入神经元数量 + 1) × 输出神经元数量
+
+### 感受野计算
 ### 参数初始化方法
+### 归一化
+### 模拟退火
+### 模型蒸馏
+### 分组卷积
+### 深度可分离卷积
+### 空洞卷积
+### 转置卷积
+### 反卷积
+### 1×1卷积
+### 可变形卷积
 ### Dropout
 在机器学习的模型中，如果模型的参数太多，而训练样本又太少，训练出来的模型很容易产生过拟合的现象。  
 Dropout可以比较有效的缓解过拟合的发生，在一定程度上达到正则化的效果。  
@@ -222,7 +280,6 @@ Dropout导致两个神经元不一定每次都在一个Dropout网络中出现。
 总的来说，由于Dropout是随机丢弃，故而相当于每一个mini-batch都在训练不同的网络，可以有效防止模型过拟合，让网络泛化能力更强，同时由于减少了网络复杂度，加快了运算速度。还有一种观点认为Dropout有效的原因是对样本增加来噪声，变相增加了训练样本。  
 Dropout通常用于全连接层中和输入层中，很少见到卷积层后接Dropout，原因主要是卷积参数少，不易过拟合。
 
-
 ### 激活函数
 #### ReLU
 <center>
@@ -260,36 +317,56 @@ Dropout通常用于全连接层中和输入层中，很少见到卷积层后接D
 
 **ac酱**
 
-**更新于2020-03-12 中午**
+**更新于2020-03-15 凌晨**
 
 > 参考资料：
+LeNet
 * [](https://blog.csdn.net/kuweicai/article/details/93359992)
 * [](https://zhuanlan.zhihu.com/p/31006686)
-
+AlexNet
 * [](https://zhuanlan.zhihu.com/p/93069133)
 * [](https://zhuanlan.zhihu.com/p/22659166)
 * [](https://zhuanlan.zhihu.com/p/47391705)
 * [](https://zhuanlan.zhihu.com/p/73688224)
 * [](https://zhuanlan.zhihu.com/p/86447716)
 * [](https://blog.csdn.net/kuweicai/article/details/102789420)
-
+* [](https://zhuanlan.zhihu.com/p/20324656)
+ReLU
 * [](https://blog.csdn.net/kuweicai/article/details/93926393)
+Dropout
 * [](https://blog.csdn.net/program_developer/article/details/80737724)
+* [](https://blog.csdn.net/GreatXiang888/article/details/99310164)
+VGGNet
+
+各种细节
+* [](https://www.jianshu.com/p/d4db25322435)
+* [](https://blog.csdn.net/u013793650/article/details/78250152)
+* [](https://blog.csdn.net/weixin_43200669/article/details/101063068)
 
 
 
-
+后续备用
+https://www.jianshu.com/p/7967556bcf75
 https://blog.csdn.net/kuweicai/article/details/93926393
 https://blog.csdn.net/GreatXiang888/article/details/99296607
-https://blog.csdn.net/kuweicai/article/details/102789420
 https://zhuanlan.zhihu.com/p/88946608
-https://zhuanlan.zhihu.com/p/31006686
-https://zhuanlan.zhihu.com/p/73688224
-https://zhuanlan.zhihu.com/p/47391705
-https://zhuanlan.zhihu.com/p/22659166
-https://zhuanlan.zhihu.com/p/93069133
-
-
 https://blog.csdn.net/GreatXiang888/article/details/99310164
 https://blog.csdn.net/GreatXiang888/article/details/99293507
 https://blog.csdn.net/GreatXiang888/article/details/99221246
+https://www.jianshu.com/p/a936b7bc54e3
+https://www.jianshu.com/p/26a7dbc15246
+https://www.jianshu.com/p/491c7bc0e87c
+https://www.jianshu.com/p/11bcb28ca0f0
+https://zhuanlan.zhihu.com/p/22038289
+
+
+
+临时
+https://blog.csdn.net/kuweicai/article/details/102789420
+https://zhuanlan.zhihu.com/p/88946608
+https://zhuanlan.zhihu.com/p/31006686
+https://zhuanlan.zhihu.com/p/73794404
+https://zhuanlan.zhihu.com/p/73805739
+https://zhuanlan.zhihu.com/p/47391705
+https://zhuanlan.zhihu.com/p/23518167
+https://zhuanlan.zhihu.com/p/93069133
