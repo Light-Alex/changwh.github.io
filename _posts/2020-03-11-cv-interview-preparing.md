@@ -620,10 +620,12 @@ Faster R-CNN = Fast R-CNN + RPN（区域建议网络）
 使用RPN取代离线的Selective Search，解决性能瓶颈，提供量少(约300)质优（高precision，高recall）的Region proposals。
 
 RPN：  
+RPN是一种全卷积神经网络。  
 输入：conv5输出的特征图  
-1) 3×3卷积，卷积核个数：256，步长：1？，激活函数：ReLU  
-2.1) Region proposals部分；1×1卷积，卷积核个数：4k，输出k组proposals的offsets（r,c,w,h）  
-2.2) Classification部分：1×1卷积，卷积核个数：2k，输出k组（object score，non-object score）  
+1) 3×3卷积，卷积核个数：256（ZF网络，vgg为512），步长：1×1，padding：1×1，激活函数：ReLU  
+为什么使用3x3的滑窗而不是2x2或者其他，个人理解：因为3x3在原图像的感受野是228x228, 对于尺度为128，256, 512的anchor设计来说，对于128x128的region proposal, 228x228是个很不错的选择（包含了上下文信息）, 256尺度的跟228差不多， 512x512的只利用了中心的228x228的特征(虽然不是很好，但也凑合), 所以选择3x3的滑窗也算是一个技巧，目的是让这个滑动窗口的感受野跟region proposal的尽可能接近，这样去分类和做窗口回归才会更准。  
+2.1) Region proposals部分；1×1卷积，卷积核个数：4k，步长：1×1，输出k组proposals的offsets（r,c,w,h）  
+2.2) Classification部分：1×1卷积，卷积核个数：2k，步长：1×1，输出k组（object score，non-object score）  
 k表示anchor box类型数，通常情况下为9（3×3）。  
 3种原始图片上的尺度（scale）：128，256，512  
 3种宽高比（ratio）：1:1，1:2，2:1  
@@ -632,21 +634,21 @@ anchor总数量为W×H×k，表示conv5特征图（W×H）的每个点上有k个
 RPN的loss：  
 $$L(\{p_i\},\{t_i\})=\frac{1}{N_{cls}}\sum_iL_{cls}(p_i,p_i^*)+\lambda\frac{1}{N_{reg}}\sum_ip_i^*L_{reg}(t_i,t_i^*)$$
 
-除于$N_{cls}$和$N_{reg}$（进行分类和回归的anchor个数）是为了进一步平衡两个loss。$\lambda$取值，$p_i^{*}$指示函数`？？？`
+除于$N_{cls}$和$N_{reg}$（进行分类和回归的anchor个数，256，~2400`???`）以及使用$\lambda$（取值为10）加权是为了进一步平衡两个loss。$p_i^{*}$指示函数，如果当前anchor为正例，真实标签$p_i^{*}$为1，如果当前anchor为正例，则为0。
 
-Classification部分：分为object和non-object两类。
+Classification部分：分为object和non-object两类，使用softmax激活和cross-entropy loss。
 
-Regression部分：使用Smooth L1 loss:  
+Regression部分：获得bounding box坐标，使用Smooth L1 loss:  
 $t_x=(x-x_a)/w_a,t_y=(y-y_a)/h_a$  
 $t_w=log(w/w_a),t_h=log(h/h_a)$  
-$t_x^{*}=(x^{*}-x_a)/w_a,t_y^{*}=(y^{*}-y_a)/h_a$  
-$t_w^{*}=log(w^{*}/w_a),t_h^{*}=log(h^{*}/h_a)$  
-$x，x_a，x^{*}$分别对应预测框，anchor框，ground truth框的中心点x坐标。y，w，h类似。
+$t_x^\*=(x^\*-x_a)/w_a,t_y^\*=(y^\*-y_a)/h_a$  
+$t_w^\*=log(w^\*/w_a),t_h^\*=log(h^\*/h_a)$  
+$x，x_a，x^\*$分别对应预测框，anchor框，ground truth框的中心点x坐标。y，w，h类似。
 
 训练rpn的mini-batch：  
 单张图片  
-128个正样本：IoU>0.7的anchor框（或最大的IoU，因为有可能不存在IoU>0.7的anchor框）  
-128个负样本：IoU<0.3的anchor框
+128个正样本（anchors）：IoU>0.7的anchor框（或最大的IoU，因为有可能不存在IoU>0.7的anchor框）  
+128个负样本（anchors）：IoU<0.3的anchor框
 
 训练流程：  
 1. 训练RPN：  
@@ -720,6 +722,33 @@ $x，x_a，x^{*}$分别对应预测框，anchor框，ground truth框的中心点
     链接数 = (输入神经元数量 + 1) × 输出神经元数量
 
 ### 感受野计算
+$$r_i=s_i*(r_{i+1}-1)+k_i$$
+需要从顶层往底层（靠近输入层）进行计算，$r_i$表示待计算层输出的一个像素点的感受野大小，$s_i$表示待计算层的步长，$k_i$表示待计算层的卷积核（池化窗口）大小，$r_{i+1}$表示待计算层上一层输出的一个像素点的感受野大小。此计算不需要考虑 padding size。
+
+举个VGG16的例子：
+
+    conv5_3:3  
+    conv5_2:1×(3-1)+3=5  
+    conv5_1:1×(5-1)+3=7  
+    maxpool4:2×(7-1)+2=2×7=14  
+    conv4_3:1×(14-1)+3=16  
+    conv4_2:1×(16-1)+3=18  
+    conv4_1:1×(18-1)+3=20  
+    maxpool3:2×20=40  
+    conv3_3:1×(40-1)+3=42  
+    conv3_2:1×(42-1)+3=44  
+    conv3_1:1×(44-1)+3=46  
+    maxpool2:2×46=92  
+    conv2_2:1×(92-1)+3=94  
+    conv2_1:1×(94-1)+3=96  
+    maxpool1:2×96=192  
+    conv1_2:1×(192-1)+3=194  
+    conv1_1:1×(194-1)+3=196  
+
+所以在conv5_3的输出中，一个像素在输入图像中的感受野为196个像素。
+
+`https://zhuanlan.zhihu.com/p/41955458`
+
 ### 参数初始化方法
 ### 归一化
 ### 模拟退火
@@ -954,6 +983,7 @@ https://zhuanlan.zhihu.com/p/42738847
 faster rcnn
 https://zhuanlan.zhihu.com/p/43812909
 https://zhuanlan.zhihu.com/p/44612080
+https://zhuanlan.zhihu.com/p/31426458
 cascade rcnn
 https://blog.csdn.net/u014380165/article/details/80602027
 https://zhuanlan.zhihu.com/p/42553957
