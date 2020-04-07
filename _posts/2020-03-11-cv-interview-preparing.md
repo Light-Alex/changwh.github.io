@@ -612,12 +612,18 @@ Batch_size(128)=images(2)*RoIs(64)
 
 ### Faster R-CNN
 <center>
+<img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2020-03-11-cv-interview-preparing/27.jpg" />
+<div>Faster R-CNN</div>
+</center>
+
+<center>
 <img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2020-03-11-cv-interview-preparing/26.jpg" />
 <div>Faster R-CNN</div>
 </center>
 
 Faster R-CNN = Fast R-CNN + RPN（区域建议网络）  
-使用RPN取代离线的Selective Search，解决性能瓶颈，提供量少(约300)质优（高precision，高recall）的Region proposals。
+对于一副任意大小PxQ的图像，首先缩放至固定大小MxN，然后将MxN图像送入网络；而Conv layers中包含了13个conv层+13个relu层+4个pooling层；RPN网络首先经过3x3卷积，再分别生成positive anchors和对应bounding box regression偏移量，然后计算出proposals；而Roi Pooling层则利用proposals从feature maps中提取proposal feature送入后续全连接和softmax网络作classification（即分类proposal到底是什么object）。  
+与Fast R-CNN的区别在于使用RPN取代离线的Selective Search，解决性能瓶颈，提供量少(约300)质优（高precision，高recall）的Region proposals。
 
 RPN：  
 RPN是一种全卷积神经网络。  
@@ -650,15 +656,40 @@ $x，x_a，x^\*$分别对应预测框，anchor框，ground truth框的中心点x
 128个正样本（anchors）：IoU>0.7的anchor框（或最大的IoU，因为有可能不存在IoU>0.7的anchor框）  
 128个负样本（anchors）：IoU<0.3的anchor框
 
-训练流程：  
-1. 训练RPN：  
-预训练模型初始化，通过训练RPN得到Region proposals。
-2. 训练Fast R-CNN（除RPN以外的部分称为Fast R-CNN）  
-预训练模型初始化，与训练RPN时的卷积层不共享，由训练好的RPN提供Region proposals。
-3. 调优RPN  
+训练流程（六步交替法）：  
+<center>
+<img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2020-03-11-cv-interview-preparing/29.jpg" />
+<div>RPN training</div>
+</center>
+
+<center>
+<img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2020-03-11-cv-interview-preparing/30.jpg" />
+<div>Fast R-CNN training</div>
+</center>
+
+1. 使用ImageNet预训练后的参数将模型初始化，对RPN进行训练。
+2. 通过训练后的RPN得到Region proposals。
+3. 训练Fast R-CNN（除RPN以外的部分称为Fast R-CNN）  
+使用ImageNet预训练后的参数将模型初始化，与训练RPN时的卷积层不共享，由训练好的RPN提供Region proposals。
+4. 调优RPN  
 使用训练Fast R-CNN得到的卷积层参数对其初始化，固定卷积层参数，finetune剩余层。得到更精细的Region proposals。
-4. 调优Fast R-CNN  
+5. 通过调优后的RPN得到Region proposals。
+6. 调优Fast R-CNN  
 与调优RPN时的卷积层共享，固定卷积层参数，finetune剩余层。由调优好的RPN提供更精细的Region proposals。
+
+训练流程（end2end）：
+<center>
+<img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2020-03-11-cv-interview-preparing/28.jpg" />
+<div>Faster R-CNN end2end training</div>
+</center>
+
+此训练方式比六步交替训练快很多，但精度却没有损失。此方式融合了RPN训练Fast R-CNN训练，但Fast R-CNN的input_data（原来为通过RPN得到的离线Region proposals数据）换成了roi_data由ProposalTargetLayer来完成对rois、labels、bbox_targets、bbox_inside_weights、bbox_outside_weights数据的生成。融合的训练过程需要计算四个损失函数，细节可参考：http://www.telesens.co/2018/03/11/object-detection-and-classification-using-r-cnns/。
+
+存疑点：
+1. RPN训练的第一个batch是如何采样的？当时的正例负例怎么确认？
+直接取全部anchor，去除越界的anchor，通过与Ground Truth的IoU判断正例负例，而不是对proposal regions进行正负例判断。简而言之，训练的样本就是满足一定IoU的anchor，这不需要通过预测得到。  
+2. RPN loss中的$N_{reg}$的2400是如何取得的？
+论文中$N_{reg}$是feature map的size，但是实际的代码实现的时候，$N_{reg}/\lambda$是batch size。batch size为256，$\lambda$为1。假设$\lambda$为10，实际上$N_{reg}$也在2400左右（2560）。`https://www.zhihu.com/question/65587875`
 
 ### R-FCN
 ### Mask R-CNN
@@ -872,7 +903,7 @@ Dropout通常用于全连接层中和输入层中，很少见到卷积层后接D
 
 **ac酱**
 
-**更新于2020-04-03 下午**
+**更新于2020-04-07 下午**
 
 > 参考资料：
 
@@ -984,6 +1015,13 @@ faster rcnn
 https://zhuanlan.zhihu.com/p/43812909
 https://zhuanlan.zhihu.com/p/44612080
 https://zhuanlan.zhihu.com/p/31426458
+https://zhuanlan.zhihu.com/p/42741973
+
+https://zhuanlan.zhihu.com/p/72579976
+https://www.zhihu.com/question/65587875
+https://blog.csdn.net/Mr_health/article/details/84970776
+https://zhuanlan.zhihu.com/p/61221686
+
 cascade rcnn
 https://blog.csdn.net/u014380165/article/details/80602027
 https://zhuanlan.zhihu.com/p/42553957
