@@ -447,8 +447,13 @@ LeNet有一个很有趣的地方，就是S2层与C3层的连接方式。在原�
 
 ## 实例分割
 
-## 目标识别
-### 目标识别发展历程
+## 目标检测与识别
+### 目标检测发展历程
+<center>
+<img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2020-03-11-cv-interview-preparing/31.jpg" />
+<div>目标检测发展历程</div>
+</center>
+
 ### R-CNN
 <center>
 <img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2020-03-11-cv-interview-preparing/23.jpg" />
@@ -692,6 +697,7 @@ $x，x_a，x^\*$分别对应预测框，anchor框，ground truth框的中心点x
 论文中$N_{reg}$是feature map的size，但是实际的代码实现的时候，$N_{reg}/\lambda$是batch size。batch size为256，$\lambda$为1。假设$\lambda$为10，实际上$N_{reg}$也在2400左右（2560）。`https://www.zhihu.com/question/65587875`
 
 ### R-FCN
+
 ### Mask R-CNN
 ### U-NET
 ### YOLO
@@ -700,6 +706,12 @@ $x，x_a，x^\*$分别对应预测框，anchor框，ground truth框的中心点x
 ### YOLO v3-tiny
 ### YOLt
 ### SSD
+### cornernet
+CornerNet创新来自于多人姿态估计的Bottom-Up思路（先对整个图片进行每个人体关键点部件的检测，再将检测到的人体部位拼接成每个人的姿态，缺点就是会将不同人的不同部位按一个人进行拼接），预测corner的heatmaps,根据Embeddings vector对corner进行分组，其主干网络也来自于姿态估计的Hourglass Network。  
+corner pooling
+hourglass network
+embedding vector
+### centernet-keypoints
 
 ## 网络中的各种细节
 ### 反向传播的推导
@@ -890,7 +902,6 @@ Dropout通常用于全连接层中和输入层中，很少见到卷积层后接D
 ### Cascade rcnn
 ### DCN
 ### FPN
-### RPN
 ### NAS
 ### ROI Align
 ### Smooth L1 loss
@@ -898,6 +909,11 @@ Dropout通常用于全连接层中和输入层中，很少见到卷积层后接D
 ### OHEM
 ### Soft-NMS
 ### MMDetection
+
+### DeepSort
+### FairMOT
+### 卡尔曼滤波
+### 匈牙利算法
 
 ## 智力题
 
