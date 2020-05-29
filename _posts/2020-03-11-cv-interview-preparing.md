@@ -174,7 +174,7 @@ VGG16由13个卷积层和3个全连接层（5个池化层不计算在内）组�
 假设输入与输出的channel数都为C。  
 两个串联的小卷积核需要3×3×C×C×2=18C^2个参数，一个5×5的卷积核则有25C^2个参数。  
 三个串联的小卷积核需要3×3×C×C×3=27C^2个参数，一个7×7的卷积核则有49C^2个参数。  
-通过小卷积核的堆叠实现与大卷积核相同的感受野，从而大大减少了参数的数量。
+通过小卷积核的堆叠实现与大卷积核相同的感受野，从而大大减少了参数的数量。（升维与降维的情况下呢？）
 
 2. 引入了更多的非线性：  
 多少个串联的小卷积核就对应着多少次激活(activation)的过程，而一个大的卷积核就只有一次激活的过程。引入了更多的非线性变换，也就意味着模型的表达能力会更强，可以去拟合更高维的分布。  
@@ -408,15 +408,127 @@ Inception包含4条并行线路，其中，第1、2、3条线路分别采用了1
 ### Xception
 ### SqueezeNet
 ### ShuffleNet
-### ResNet
+### ResNet(2015)
+<center>
+<img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2020-03-11-cv-interview-preparing/32.jpg" />
+<div>ResNet</div>
+</center>
+
+ResNet 将深度学习推到了新的高度，因为它首次将错误率降到比人类还低的水平，网络深度甚至达到1202层，所以它具有里程碑式的意义。文章中作者提出了多种不同深度的结构，其中50,101和152层的网络后来用的比较多。其设计理念是基于VGG的风格（3×3卷积+下采样/2的同时卷积核数量×2），保持简洁并通过增加网络的深度提高网络的性能。
+
+什么叫残差：
+<center>
+<img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2020-03-11-cv-interview-preparing/33.jpg" />
+<div>残差单元</div>
+</center>
+
+残差在数理统计中的定义是观测值与估计值之间的差值，但这和残差网络中的定义不同。  
+假如我们有一个输入x，并且希望通过网络得到他的映射H(x)。如果我们将残差定义为F(x)=H(x)-x，那么理想的映射值应该为H(x)=F(x)+x。如果引入到残差网络的残差单元结构中，可以发现由于得到该单元的输出之前，将通过两个权重层的输出结果和输入x进行了相加，即这个残差单元的输出为H(x)=F(x)+x。也就是说，实际通过两层权重层直接输出得到的是残差F(x)，两层权重层学习到的参数是x映射到残差F(x)的参数，不是直接学习x映射到H(x)的参数。
+
+残差单元中输入与两层权重层输出的连线称作shortcut connection。根据ResNet的结构图可以看到，shortcut有虚线和实线的区分。虚线的地方由于weight layers使用了stride为2的卷积，因此input和output的尺寸是不同的，没法直接进行element wise addition（size,kernel channel相同，即两个tensor相同位置上的元素相加后得到新的tensor），实际上需要通过stride为2（input_size/residual_size）的1×1卷积对input进行处理，才能进行element wise addition。
+
+由于残差结构的特殊性，由loss对输入求导时，导数项将被分解为两个，其中一个直接对输入求导的导数项不会消失，所以梯度一直存在。
+
+创新点：
+1. 加入shortcut connection解决梯度消失的问题（有说法并没有解决梯度消失的问题，He kaiming的论文中也说了:臭名昭著的梯度弥散/爆炸问题已经很大程度上被normalized initialization and intermediate normalization layers解决了；残差网络使信息更容易在各层之间流动，包括在前向传播时提供特征重用，在反向传播时缓解梯度信号消失，原作者在一篇后续文章中给出了讨论），以使得更深的网络能比较浅的网络获得更优的精度。
+2. ResNet的kernel channel比VGG19少（个人理解为同尺寸输出时对应的kernel channel），且FC层被Ave Pooling替代（GoogLeNet），同时只在开头和末尾的位置有pooling层，中间的下采样通过stride为2的卷积操作实现。
+
+为什么work?
+1. 从前后向信息传播的角度来看  
+何凯明在后续论文中对残差网络为什么能work给出了一种解释，由于残差结构的存在，在前向传播中，输入信号能够从任意低层直接传播到高层，由于包含了一个天然的恒等映射，一定程度上可以解决网络退化的问题。在反向传播时，错误信号可以不经过任何中间权重矩阵变换直接传播到低层，一定程度上可以缓解梯度消失的问题。总的来说可以认为残差连接使得信息的前后向传播更加顺畅。
+<center>
+<img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2020-03-11-cv-interview-preparing/34.jpg" />
+<div>残差网络展开式</div>
+</center>
+<center>
+<img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2020-03-11-cv-interview-preparing/35.jpg" />
+<div>残差网络展开图</div>
+</center>
+2. 集成学习的角度  
+将残差网络展开，以一个三层的ResNet为例，可以得到如上的树形结构:  
+这样残差网络可以被看作是一系列路径集合组成的一个集成模型，其中不同的路径包含了不同的网络层子集。经过实验，去除掉残差网络的部分网络层，或交换某些网络模块的顺序（改变网络的结构，丢弃一部分路径的同时引入新路径），发现网络的表现与正确网络路径数平滑相关（路径变化时网络表现没有剧烈变化）。这表明残差网络展开后的路径具有一定的独立性和冗余性，使得残差网络表现得像一个集成模型。  
+作者还通过实验表明，残差网络中主要在训练中贡献了梯度的是那些相对较短的路径。这与1.中的观点有所区别，残差网络并不是通过保留整个网络深度上的梯度流动来抑制梯度消失的问题，但实际上这些较短路径正是由残差结构引入的。
+<center>
+<img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2020-03-11-cv-interview-preparing/36.jpg" />
+<div>梯度破碎实验</div>
+</center>
+3. 梯度破碎问题
+2018年时，有人提出了一个新的观点，残差网络解决的问题并非梯度消失和网络退化问题，而是梯度破碎问题。什么是梯度破碎问题呢？大致是说，一张图片是具有局部相关性的，那么梯度也应该类似的具有局部相关性，这样更新的权重才有意义，梯度破碎就是梯度的局部相关性（空间结构）被破坏。但是在标准的前馈神经网络中，随着深度增加，梯度将从棕色噪声逐渐变为白噪声（从有规律的变化为无规律的），神经元梯度的相关性按指数级减少（$/frac{1}{2^L}$），同时梯度的空间结构也随着深度增加被逐渐消除。而在残差网络中，神经元梯度相关性的减少速度从指数级下降到亚线性级（$/frac{1}{\sqrt(L)}$），神经元梯度介于棕色噪声与白噪声之间，梯度的空间结构被极大地保留下来。
+
+残差单元结构改进：  
+He Kaiming在后续论文中提出了原始残差单元结构的改进，如下图。
+<center>
+<img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2020-03-11-cv-interview-preparing/37.jpg" />
+<div>残差单元改进</div>
+</center>
+
+常用的ResNet结构一览：  
+<center>
+<img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2020-03-11-cv-interview-preparing/38.jpg" />
+<div>常用的ResNet结构</div>
+</center>
+<center>
+<img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2020-03-11-cv-interview-preparing/39.jpg" />
+<div>使用BottleNeck结构得到更深的残差单元</div>
+</center>
+在ResNet-50/101/152的结构中使用增加了BottleNeck结构的残差单元，将原本2层网络堆叠变为了3层。使用BottleNeck结构的目的是为了降维，以减少3×3卷积的参数量。
+
+Input层的7×7卷积？  
+尽可能保留原始图像的信息, 而不需要增加channels数。  
+多channels的非线性激活层是非常昂贵的, 在input layer用big kernel换多channels是划算的，第一层卷积可以非常大而不会大幅增加实际的权重数。如果你想在某个地方进行大卷积，第一层通常是唯一的选择。  
+个人的理解还是在于减少计算量和参数量，对于7×7卷积核，计算量（输入channel数 × 卷积核_w × 卷积核_h × 输出_w × 输出_h × 输出channel数）：  
+7×7×3×112×112×64=118013952≈118M  
+参数量（(卷积核_w × 卷积核_h × 输入channel数 + 1) × 输出channel数）：  
+(7×7×3+1)×64=9472  
+如果是使用三个3×3卷积替代7×7卷积（相同感受野），其计算量：  
+3×3×3×112×112×64+3×3×64×112×112×64+3×3×64×112×112×64=21676032+462422016+462422016=946520064≈946.5M  
+参数量：  
+(3×3×3+1)×64+(3×3×64+1)×64+(3×3×64+1)×64=1792+73856=75648  
+通过减少中间层的卷积核channel来减少其计算量：  
+3×3×3×112×112×24+3×3×24×112×112×32+3×3×32×112×112×64=8128512+86704128+231211008=326043648≈326M  
+参数量：  
+(3×3×3+1)×24+(3×3×24+1)×32+(3×3×32+1)×64=672+6944+18496=26112  
+由此可见，这种情况下，多个卷积层堆叠之后将会增加计算量。应该是由于输入channel和输出channel差距较大，在堆叠卷积层的第一层中进行升维后，后续的卷积层的计算量和参数量同时会大幅增加。这样就说明了使用堆叠的小卷积核替代大卷积核能够减少参数量和计算量的结论成立的前提是输入的channel和输出的channel相同。（升维操作对大卷积核只影响一次，但是对于堆叠的小卷积核却能影响多次）
+
+
 ### ResNext
-### Residual Attention Moudle
-### DenseNet
+### Residual Attention Module
+### DenseNet(2016)
+<center>
+<img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2020-03-11-cv-interview-preparing/40.jpg" />
+<div>DenseNet的Dense Block结构</div>
+</center>
+<center>
+<img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2020-03-11-cv-interview-preparing/41.jpg" />
+<div>DenseNet</div>
+</center>
+DenseNet与ResNet类似，都是利用short path来提升神经网络的性能。他与ResNet的区别在于连接方法以及连接的稠密程度。我们知道ResNet的连接方法是在残差结构中，将输入与经过二到三层卷积网络后的输出进行逐点累加，这样的操作要求输入与输出的尺寸、通道数是相同的（如果残差结构的第一个卷积层进行了下采样，那么相应的输入也需要使用1×1，stride=2的卷积层进行下采样，确保尺寸、通道数一致）。而DenseNet的连接方法为特征图拼接（concatenate），其本质为特征图重用。在Dense Block中，每层都会与前面的所有层在channel维度上进行拼接，并作为下一层的输入。对于一个L层的Dense Block，一共包含了$/frac{L(L+1)}{2}$个连接，显然这比ResNet要稠密得多。
+<center>
+<img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2020-03-11-cv-interview-preparing/42.jpg" />
+<div>DenseNet如何减少参数总量</div>
+</center>
+DenseNet减少参数总量的方式如上图所示，通常的卷积结构会对之前卷积层提取的特征重新进行提取。但是DenseNet的特殊结构，将之前所有卷积层提取到的特征图都作为当前层的输入，这就意味着当前层的输出不需要再次对之前卷积层的特征进行重复提取，只需要提取全新的特征即可，这样可以有效的减少卷积层的输出channal数从而减少参数量。每一个卷积层新提取的特征图像的数量称为增长率（growth rate）k。  
+对于每一个卷积层，都是以BN-ReLU-Conv的顺序进行计算的。由于后面卷积层的输入的channal数将会非常巨大，因此在Dense Block内部可以采用bottleneck结构降维从而减少计算量，即在原有结构中增加1×1卷积，将输入到3×3卷积的特征图的channal数量降低至4k，再将这4k张特征图直接作为3×3卷积的输入，得到k张新的特征图。
+<center>
+<img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2020-03-11-cv-interview-preparing/43.jpg" />
+<div>使用bottleneck的Dense Block</div>
+</center>
+对于Transition层，他是用于连接两个相邻的Dense Block，并降低特征图大小。
+
+https://zhuanlan.zhihu.com/p/32702239
+https://www.baidu.com/index.php?tn=monline_3_dg
+https://zhuanlan.zhihu.com/p/37189203
+https://zhuanlan.zhihu.com/p/28124810
+https://www.zhihu.com/question/342326641/answer/979607799
+https://zhuanlan.zhihu.com/p/47391705
+
+
 ### MobileNet
 ### SENet
 ### Stacked Hourglass Networks
 ### DetNet 
 ### Deformable convolution Networks
+### CenterNet等Anchor free网络
 
 
 ## 其他经典网络
@@ -954,7 +1066,7 @@ VGGNet
 * [](https://blog.csdn.net/hjimce/article/details/50187881)
 * [](https://zhuanlan.zhihu.com/p/42233779)
 
-GoogLenet
+GoogLenet  
 * [](https://www.jianshu.com/p/d42d67cbec40)
 * [](https://www.cnblogs.com/shine-lee/p/11655836.html)
 * [](https://blog.csdn.net/kuweicai/article/details/102789420)
@@ -967,6 +1079,15 @@ GoogLenet
 * [](https://zhuanlan.zhihu.com/p/93069133)
 * [](https://my.oschina.net/u/876354/blog/1637819)
 * [](https://www.zhihu.com/question/325416643)
+
+ResNet  
+* [](https://blog.csdn.net/kuweicai/article/details/102789420)
+* [](https://zhuanlan.zhihu.com/p/31006686)
+* [](https://zhuanlan.zhihu.com/p/47391705)
+* [](https://zhuanlan.zhihu.com/p/23518167)
+* [](https://zhuanlan.zhihu.com/p/42440883)
+* [](https://zhuanlan.zhihu.com/p/93069133)
+* [](https://zhuanlan.zhihu.com/p/80226180)
 
 各种细节
 * [](https://www.jianshu.com/p/d4db25322435)
@@ -999,13 +1120,7 @@ https://zhuanlan.zhihu.com/p/73879583
 https://zhuanlan.zhihu.com/p/73915627
 
 
-resnet
-https://blog.csdn.net/kuweicai/article/details/102789420
-https://zhuanlan.zhihu.com/p/31006686
-https://zhuanlan.zhihu.com/p/47391705
-https://zhuanlan.zhihu.com/p/23518167
-https://zhuanlan.zhihu.com/p/42440883
-https://zhuanlan.zhihu.com/p/93069133
+
 
 
 
