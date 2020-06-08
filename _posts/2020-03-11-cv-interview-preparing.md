@@ -490,6 +490,11 @@ Input层的7×7卷积？
 (3×3×3+1)×24+(3×3×24+1)×32+(3×3×32+1)×64=672+6944+18496=26112  
 由此可见，这种情况下，多个卷积层堆叠之后将会增加计算量。应该是由于输入channel和输出channel差距较大，在堆叠卷积层的第一层中进行升维后，后续的卷积层的计算量和参数量同时会大幅增加。这样就说明了使用堆叠的小卷积核替代大卷积核能够减少参数量和计算量的结论成立的前提是输入的channel和输出的channel相同。（升维操作对大卷积核只影响一次，但是对于堆叠的小卷积核却能影响多次）
 
+缺点：
+1. 缺少模块化设计，不够优雅。
+2. insight，先出的结构，但是work的原理后续依然有许多人研究，因此更像是偶然所得。
+3. 有部分路径实际上是无效的，可被剪枝。
+4. 只在深度上进行探索，还能结合多尺度特征，在宽度上进行网络表现的提升。（不能算是严格意义上的缺点，如果只是把shortcut和拟合残差当成一种新的思路是相当的有启发性的）
 
 ### ResNext
 ### Residual Attention Module
@@ -502,32 +507,138 @@ Input层的7×7卷积？
 <img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2020-03-11-cv-interview-preparing/41.jpg" />
 <div>DenseNet</div>
 </center>
-DenseNet与ResNet类似，都是利用short path来提升神经网络的性能。他与ResNet的区别在于连接方法以及连接的稠密程度。我们知道ResNet的连接方法是在残差结构中，将输入与经过二到三层卷积网络后的输出进行逐点累加，这样的操作要求输入与输出的尺寸、通道数是相同的（如果残差结构的第一个卷积层进行了下采样，那么相应的输入也需要使用1×1，stride=2的卷积层进行下采样，确保尺寸、通道数一致）。而DenseNet的连接方法为特征图拼接（concatenate），其本质为特征图重用。在Dense Block中，每层都会与前面的所有层在channel维度上进行拼接，并作为下一层的输入。对于一个L层的Dense Block，一共包含了$/frac{L(L+1)}{2}$个连接，显然这比ResNet要稠密得多。
+DenseNet与ResNet类似，都是利用short path来提升神经网络的性能。他与ResNet的区别在于连接方法以及连接的稠密程度。我们知道ResNet的连接方法是在残差结构中，将输入与经过二到三层卷积网络后的输出进行逐点累加，这样的操作要求输入与输出的尺寸、通道数是相同的（如果残差结构的第一个卷积层进行了下采样，那么相应的被逐点相加的输入也需要使用1×1，stride=2的卷积层进行下采样，确保尺寸、通道数一致）。而DenseNet的连接方法为特征图拼接（concatenate），其本质为`特征图重用`。在Dense Block中，每层都会与前面的所有层在channel维度上进行拼接，并作为下一层的输入。对于一个L层的Dense Block，一共包含了$/frac{L(L+1)}{2}$个连接，显然这比ResNet要稠密得多。
 <center>
 <img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2020-03-11-cv-interview-preparing/42.jpg" />
 <div>DenseNet如何减少参数总量</div>
 </center>
-DenseNet减少参数总量的方式如上图所示，通常的卷积结构会对之前卷积层提取的特征重新进行提取。但是DenseNet的特殊结构，将之前所有卷积层提取到的特征图都作为当前层的输入，这就意味着当前层的输出不需要再次对之前卷积层的特征进行重复提取，只需要提取全新的特征即可，这样可以有效的减少卷积层的输出channal数从而减少参数量。每一个卷积层新提取的特征图像的数量称为增长率（growth rate）k。  
-对于每一个卷积层，都是以BN-ReLU-Conv的顺序进行计算的。由于后面卷积层的输入的channal数将会非常巨大，因此在Dense Block内部可以采用bottleneck结构降维从而减少计算量，即在原有结构中增加1×1卷积，将输入到3×3卷积的特征图的channal数量降低至4k，再将这4k张特征图直接作为3×3卷积的输入，得到k张新的特征图。
+DenseNet减少参数总量的方式如上图所示，通常的卷积结构会对之前卷积层提取的特征重新进行提取。但是DenseNet的特殊结构，将之前所有卷积层提取到的特征图都作为当前层的输入，这就意味着当前层的输出不需要再次对之前卷积层的特征进行重复提取，只需要提取全新的特征即可，这样可以有效的减少卷积层的输出channal数从而减少参数量。每一个卷积层新提取的特征图像的数量称为`增长率（growth rate）k`。  
+对于每一个卷积层，都是以BN-ReLU-Conv的顺序进行计算的。由于后面卷积层的输入的channal数将会非常巨大，因此在Dense Block内部可以采用bottleneck结构降维从而减少计算量，即在原有结构中增加1×1卷积，将输入到3×3卷积的特征图的channal数量降低至4k，再将这4k张特征图直接作为3×3卷积的输入，得到k张新的特征图。这种结构作者取名为DenseNet-B。
 <center>
 <img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2020-03-11-cv-interview-preparing/43.jpg" />
 <div>使用bottleneck的Dense Block</div>
 </center>
-对于Transition层，他是用于连接两个相邻的Dense Block，并降低特征图大小。
+对于Transition层，是用于连接两个相邻的Dense Block，并缩小特征图尺寸。由于Dense Block的连接方式，需要相连接的每个层的输出尺寸相同，但是对于卷积网络，下采样进行抽象特征的提取是不可避免的，因此需要一个桥梁连接不同尺寸的Dense Block。  
+Transition层正是这样的一座桥梁。他包含一个1×1卷积和2×2的AvgPooling，具体结构为BN+ReLU+1×1 Conv+2×2 AvgPooling。除了缩小特征图的尺寸，Transition层还能起到压缩模型的作用。假定Transition上接的Dense Block得到的特征图channels数为m，Transition层中的卷积层可以产生$\lfloor \theta m \rfloor$个特征，其中$\theta \in (0,1]$是压缩系数。当$\theta = 1$时，特征个数没有变化，即无压缩；当压缩系数小于1时，这种结构称为DenseNet-C，文中使用$\theta = 0.5$。  
+对于在DenseBlock中使用bottle neck结构，Transition层中的压缩系数小于1的DenseNet，作者取名为DenseNet-BC。
+<center>
+<img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2020-03-11-cv-interview-preparing/44.jpg" />
+<div>针对ImageNet数据集设置的DenseNet，第一层的7×7卷积核个数为2k，Transition层的$\theta = 0.5$</div>
+</center>
 
-https://zhuanlan.zhihu.com/p/32702239
-https://www.baidu.com/index.php?tn=monline_3_dg
-https://zhuanlan.zhihu.com/p/37189203
-https://zhuanlan.zhihu.com/p/28124810
-https://www.zhihu.com/question/342326641/answer/979607799
-https://zhuanlan.zhihu.com/p/47391705
+优点：
+1. 这种结构通过特征图的复用，减少的了每次卷积产生特征图的数量，从而减少卷积核的数量即卷积的参数量。
+2. 通过稠密连接提升了信息和梯度在整个网络中的流动性。
+3. 多尺度特征结合的思想。
 
+缺点：
+1. 由于稠密连接，每一层的输入是前面每一层的输出，所以在没有经过框架的特殊优化前，DenseNet需要频繁读取内存以读取前面的所有层。
+2. 反向传播更复杂，训练速度较慢。
+3. 深度不如ResNet深。
 
-### MobileNet
+### MobileNet V1/V2/V3
+#### MobileNet V1(2016)
+其实MobileNet V1只需要一句话就能简介完毕，就是把VGG中标准卷积层替换为深度可分离卷积。  
+那么什么是深度可分离卷积呢？
+其实在2012年就已经有人提出了可分离卷积的概念。可分离卷积主要有两种类型，空间可分离卷积和深度可分离卷积。
+空间可分离就是将一个大的卷积核变为两个小的卷积核，比如：
+<center>
+<img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2020-03-11-cv-interview-preparing/45.jpg" />
+<div>空间可分离卷积</div>
+</center>
+这不在MobileNet的范围内，因此不再赘述。
+
+在介绍深度可分离卷积前，我们先复习一下常规的卷积操作是什么样的：
+假设一张5×5×3的图片经过padding后（padding=1）输入到kernel size为4的3×3卷积核的卷积层，那么卷积核的总参数量应为3×3×3×4=108，计算量为(3×3×3+3×3×3-1+1)×5×5×4=5400，最终输出4张特征图。
+<center>
+<img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2020-03-11-cv-interview-preparing/46_2.jpg" />
+<div>常规卷积</div>
+</center>
+而对于深度可分离卷积，则将卷积操作分为了两部分，逐通道卷积（DepthWise）和逐点卷积(PointWise)。  
+首先对输入图像进行逐通道卷积，逐通道卷积的一个卷积核只负责一个通道，输入图像的一个通道只被一个卷积核卷积。  
+还是以一张5×5×3的输入图片为例，首先经过逐通道卷积，卷积核的数量与输入图片的channels数相同且一一对应，所以输出的特征图数量与输入图像的通道数相同，这里输出的特征图的数量为3。该部分的参数个数为3×3×3=27，计算量为(3×3+3×3-1+1)×5×5×3=1350。  
+由于这种运算对输入层的每个通道独立进行卷积运算，没法有效利用不同通道在相同空间位置上的特征。因此还需要逐点卷积进行特征融合。
+<center>
+<img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2020-03-11-cv-interview-preparing/46.jpg" />
+<div>逐通道卷积</div>
+</center>
+逐点卷积与常规卷积类似，他的卷积核的尺寸为1×1×M，M为上一层的通道数。这里的卷积运算会将上一步的特征图在深度方向上进行加权生成新的特征图，有几个卷积核就有几个输出的特征图。在本例中，最后生成了4张新的特征图，所以该部分的参数个数为1×1×3×4=12，计算量为(1×1×3+1×1×3-1+1)×5×5×4=600。  
+将两部分的参数量相加：27+12=39，为常规卷积的108个参数的13/36。计算量相加：1350+600=1950，也为常规卷积的5400次的13/36。（可根据公式推导得出参数量与运算量均下降为原来的$/frac{1}{输出channel数}+/frac{1}{卷积核_w × 卷积核_h}$）
+<center>
+<img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2020-03-11-cv-interview-preparing/47.jpg" />
+<div>标准卷积与MobileNetV1卷积块</div>
+</center>
+上图的虚线部分是不相同点。注意V1的卷积块中新引入了激活函数ReLU6。
+<center>
+<img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2020-03-11-cv-interview-preparing/48.jpg" />
+<div>ReLU6</div>
+</center>
+ReLU6与ReLU的区别在于多了最大输出值为6的限制，这是为了在移动端设备float16的低精度时，也能有很好的数值分辨率。如果对ReLU的激活范围不加限制，激活值有可能非常大，即分布范围可能会非常大，则低精度的float16无法很好地精确描述如此大范围的数值，带来精度损失。(这里所说的“低精度”，有人说不是指的float16，而是指定点运算（fixed-point arithmetic）)
+
+<center>
+<img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2020-03-11-cv-interview-preparing/49.jpg" />
+<div>MobileNet V1网络结构</div>
+</center>
+
+#### MobileNet V2(2017)
+MobileNet V1的深度可分离卷积能在减少参数量、计算量，加快网络运算速度的同时得到标准卷积接近的结果，看起来是美好的。但是有人在实际使用时，发现逐通道卷积部分的卷积核比较容易训废掉，出来的卷积核有不少是空的。作者认为这是ReLU引起的。  
+作者做了个实验，简单地说，就是对一个n维空间中的一个“东西”做ReLU运算，然后（利用T的逆矩阵T-1恢复）对比ReLU之后的结果与Input的结果相差有多大。
+<center>
+<img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2020-03-11-cv-interview-preparing/50.jpg" />
+<div>ReLU对n维空间运算的影响</div>
+</center>
+实验的结果如上图，在低维空间做ReLU运算，很容易造成信息的丢失，而在高维度进行ReLU运算时，信息的丢失将会很少。  
+这就解释了为什么深度卷积的卷积核有不少是空的。于是作者便将ReLU替换成线性激活函数。  
+这里引入了Linear bottleneck这个概念，作者将ReLU替换成线性激活函数也是在Linear bottleneck的最后一个激活函数上进行的，前面两个激活函数依然还是ReLU6。
+<center>
+<img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2020-03-11-cv-interview-preparing/51.jpg" />
+<div>Linear bottleneck示意图</div>
+</center>
+
+此外还有一个问题，逐通道卷积无法改变通道数量，如果输入的通道数量很少的话，逐通道卷积只能在低维度上进行，效果并不会很好，因此需要“扩张”通道。所以可以在逐通道卷积之前使用逐点卷积进行升维（升维倍数为t，t=6），再在一个更高维的空间中进行逐通道卷积提取特征。
+<center>
+<img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2020-03-11-cv-interview-preparing/52.jpg" />
+<div>Expansion layer</div>
+</center>
+也就是说，不管输入通道数是多少，经过第一个逐点卷积升维之后，逐通道卷积都是在原输入维度的6倍维度上进行。
+
+除了上述的Linear bottleneck和Expansion layer，MobileNet V2还有引入了和ResNet类似的shortcut结构，如下图所示。
+<center>
+<img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2020-03-11-cv-interview-preparing/53.jpg" />
+<div>MobileNet V2 shortcut结构与MobileNet对比</div>
+</center>
+<center>
+<img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2020-03-11-cv-interview-preparing/54.jpg" />
+<div>MobileNet V2 shortcut结构与ResNet对比</div>
+</center>
+MobileNet V2与ResNet都采用了1×1->3×3->1×1的Block，并都使用了Shortcut结构，但是两者依然存在不同的地方（相邻Block之间不升维的情况）：  
+ResNet先对输入降维（0.25倍）、卷积、再升维到输入的维度。  
+MobileNet V2则是先对输入升维（6倍）、卷积、再降维的输入的维度。  
+两者的操作正好相反。
+
+总结起来，MobileNet V2的特点可以用以下的图片概括：
+<center>
+<img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2020-03-11-cv-interview-preparing/55.jpg" />
+<div>MobileNet V2特点总结</div>
+</center>
+<center>
+<img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2020-03-11-cv-interview-preparing/56.jpg" />
+<div>MobileNet V2 Block与V1对比</div>
+</center>
+当步长为2时，因为输入与输出的尺寸不符，因此不能添加shortcut结构，其余均与步长为1时一致。
+
+<center>
+<img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2020-03-11-cv-interview-preparing/57.jpg" />
+<div>MobileNet V2总体结构</div>
+</center>
+
 ### SENet
 ### Stacked Hourglass Networks
 ### DetNet 
 ### Deformable convolution Networks
+### SKNet
+### RetinaNet
+### HWNet V1/V2
 ### CenterNet等Anchor free网络
 
 
@@ -816,6 +927,7 @@ $x，x_a，x^\*$分别对应预测框，anchor框，ground truth框的中心点x
 ### YOLO v2
 ### YOLO v3
 ### YOLO v3-tiny
+### YOLO v4
 ### YOLt
 ### SSD
 ### cornernet
@@ -1088,6 +1200,17 @@ ResNet
 * [](https://zhuanlan.zhihu.com/p/42440883)
 * [](https://zhuanlan.zhihu.com/p/93069133)
 * [](https://zhuanlan.zhihu.com/p/80226180)
+
+DenseNet
+* [](https://zhuanlan.zhihu.com/p/32702239)
+* [](https://zhuanlan.zhihu.com/p/37189203)
+* [](https://zhuanlan.zhihu.com/p/28124810)
+* [](https://www.zhihu.com/question/342326641/answer/979607799)
+* [](https://zhuanlan.zhihu.com/p/47391705)
+
+MobileNet
+
+
 
 各种细节
 * [](https://www.jianshu.com/p/d4db25322435)
