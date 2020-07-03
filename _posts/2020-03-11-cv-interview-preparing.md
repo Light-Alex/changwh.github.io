@@ -444,6 +444,7 @@ ResNet 将深度学习推到了新的高度，因为它首次将错误率降到�
 <img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2020-03-11-cv-interview-preparing/35.jpg" />
 <div>残差网络展开图</div>
 </center>
+
 2. 集成学习的角度  
 将残差网络展开，以一个三层的ResNet为例，可以得到如上的树形结构:  
 这样残差网络可以被看作是一系列路径集合组成的一个集成模型，其中不同的路径包含了不同的网络层子集。经过实验，去除掉残差网络的部分网络层，或交换某些网络模块的顺序（改变网络的结构，丢弃一部分路径的同时引入新路径），发现网络的表现与正确网络路径数平滑相关（路径变化时网络表现没有剧烈变化）。这表明残差网络展开后的路径具有一定的独立性和冗余性，使得残差网络表现得像一个集成模型。  
@@ -452,8 +453,9 @@ ResNet 将深度学习推到了新的高度，因为它首次将错误率降到�
 <img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2020-03-11-cv-interview-preparing/36.jpg" />
 <div>梯度破碎实验</div>
 </center>
-3. 梯度破碎问题
-2018年时，有人提出了一个新的观点，残差网络解决的问题并非梯度消失和网络退化问题，而是梯度破碎问题。什么是梯度破碎问题呢？大致是说，一张图片是具有局部相关性的，那么梯度也应该类似的具有局部相关性，这样更新的权重才有意义，梯度破碎就是梯度的局部相关性（空间结构）被破坏。但是在标准的前馈神经网络中，随着深度增加，梯度将从棕色噪声逐渐变为白噪声（从有规律的变化为无规律的），神经元梯度的相关性按指数级减少（$/frac{1}{2^L}$），同时梯度的空间结构也随着深度增加被逐渐消除。而在残差网络中，神经元梯度相关性的减少速度从指数级下降到亚线性级（$/frac{1}{\sqrt(L)}$），神经元梯度介于棕色噪声与白噪声之间，梯度的空间结构被极大地保留下来。
+
+3. 梯度破碎问题  
+2018年时，有人提出了一个新的观点，残差网络解决的问题并非梯度消失和网络退化问题，而是梯度破碎问题。什么是梯度破碎问题呢？大致是说，一张图片是具有局部相关性的，那么梯度也应该类似的具有局部相关性，这样更新的权重才有意义，梯度破碎就是梯度的局部相关性（空间结构）被破坏。但是在标准的前馈神经网络中，随着深度增加，梯度将从棕色噪声逐渐变为白噪声（从有规律的变化为无规律的），神经元梯度的相关性按指数级减少（$\frac{1}{2^L}$），同时梯度的空间结构也随着深度增加被逐渐消除。而在残差网络中，神经元梯度相关性的减少速度从指数级下降到亚线性级（$\frac{1}{\sqrt(L)}$），神经元梯度介于棕色噪声与白噪声之间，梯度的空间结构被极大地保留下来。
 
 残差单元结构改进：  
 He Kaiming在后续论文中提出了原始残差单元结构的改进，如下图。
@@ -507,7 +509,7 @@ Input层的7×7卷积？
 <img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2020-03-11-cv-interview-preparing/41.jpg" />
 <div>DenseNet</div>
 </center>
-DenseNet与ResNet类似，都是利用short path来提升神经网络的性能。他与ResNet的区别在于连接方法以及连接的稠密程度。我们知道ResNet的连接方法是在残差结构中，将输入与经过二到三层卷积网络后的输出进行逐点累加，这样的操作要求输入与输出的尺寸、通道数是相同的（如果残差结构的第一个卷积层进行了下采样，那么相应的被逐点相加的输入也需要使用1×1，stride=2的卷积层进行下采样，确保尺寸、通道数一致）。而DenseNet的连接方法为特征图拼接（concatenate），其本质为`特征图重用`。在Dense Block中，每层都会与前面的所有层在channel维度上进行拼接，并作为下一层的输入。对于一个L层的Dense Block，一共包含了$/frac{L(L+1)}{2}$个连接，显然这比ResNet要稠密得多。
+DenseNet与ResNet类似，都是利用short path来提升神经网络的性能。他与ResNet的区别在于连接方法以及连接的稠密程度。我们知道ResNet的连接方法是在残差结构中，将输入与经过二到三层卷积网络后的输出进行逐点累加，这样的操作要求输入与输出的尺寸、通道数是相同的（如果残差结构的第一个卷积层进行了下采样，那么相应的被逐点相加的输入也需要使用1×1，stride=2的卷积层进行下采样，确保尺寸、通道数一致）。而DenseNet的连接方法为特征图拼接（concatenate），其本质为`特征图重用`。在Dense Block中，每层都会与前面的所有层在channel维度上进行拼接，并作为下一层的输入。对于一个L层的Dense Block，一共包含了$\frac{L(L+1)}{2}$个连接，显然这比ResNet要稠密得多。
 <center>
 <img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2020-03-11-cv-interview-preparing/42.jpg" />
 <div>DenseNet如何减少参数总量</div>
@@ -562,8 +564,12 @@ Transition层正是这样的一座桥梁。他包含一个1×1卷积和2×2的Av
 <img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2020-03-11-cv-interview-preparing/46.jpg" />
 <div>逐通道卷积</div>
 </center>
+<center>
+<img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2020-03-11-cv-interview-preparing/72.jpg" />
+<div>逐点卷积</div>
+</center>
 逐点卷积与常规卷积类似，他的卷积核的尺寸为1×1×M，M为上一层的通道数。这里的卷积运算会将上一步的特征图在深度方向上进行加权生成新的特征图，有几个卷积核就有几个输出的特征图。在本例中，最后生成了4张新的特征图，所以该部分的参数个数为1×1×3×4=12，计算量为(1×1×3+1×1×3-1+1)×5×5×4=600。  
-将两部分的参数量相加：27+12=39，为常规卷积的108个参数的13/36。计算量相加：1350+600=1950，也为常规卷积的5400次的13/36。（可根据公式推导得出参数量与运算量均下降为原来的$/frac{1}{输出channel数}+/frac{1}{卷积核_w × 卷积核_h}$）
+将两部分的参数量相加：27+12=39，为常规卷积的108个参数的13/36。计算量相加：1350+600=1950，也为常规卷积的5400次的13/36。（可根据公式推导得出参数量与运算量均下降为原来的$\frac{1}{输出channel数}+\frac{1}{卷积核_w × 卷积核_h}$）
 <center>
 <img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2020-03-11-cv-interview-preparing/47.jpg" />
 <div>标准卷积与MobileNetV1卷积块</div>
@@ -589,7 +595,7 @@ MobileNet V1的深度可分离卷积能在减少参数量、计算量，加快�
 </center>
 实验的结果如上图，在低维空间做ReLU运算，很容易造成信息的丢失，而在高维度进行ReLU运算时，信息的丢失将会很少。  
 这就解释了为什么深度卷积的卷积核有不少是空的。于是作者便将ReLU替换成线性激活函数。  
-这里引入了Linear bottleneck这个概念，作者将ReLU替换成线性激活函数也是在Linear bottleneck的最后一个激活函数上进行的，前面两个激活函数依然还是ReLU6。
+这里引入了Linear bottleneck这个概念，作者将ReLU替换成线性激活函数也是在Linear bottleneck的最后一个激活函数上进行的，前面两个激活函数依然还是ReLU6。（因为前两个卷积的输出通道数经过扩张之后，减小了ReLU6引起的特征丢失，但是第三个卷积是降维的，所以需要去掉ReLU6）
 <center>
 <img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2020-03-11-cv-interview-preparing/51.jpg" />
 <div>Linear bottleneck示意图</div>
@@ -611,6 +617,7 @@ MobileNet V1的深度可分离卷积能在减少参数量、计算量，加快�
 <img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2020-03-11-cv-interview-preparing/54.jpg" />
 <div>MobileNet V2 shortcut结构与ResNet对比</div>
 </center>
+以上这部分与残差块相关的结构统称为Inverted residuals（与resuduals block的区别在于，resuduals block是先降维后升维，这里是先升维后降维）。  
 MobileNet V2与ResNet都采用了1×1->3×3->1×1的Block，并都使用了Shortcut结构，但是两者依然存在不同的地方（相邻Block之间不升维的情况）：  
 ResNet先对输入降维（0.25倍）、卷积、再升维到输入的维度。  
 MobileNet V2则是先对输入升维（6倍）、卷积、再降维的输入的维度。  
@@ -631,6 +638,19 @@ MobileNet V2则是先对输入升维（6倍）、卷积、再降维的输入的�
 <img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2020-03-11-cv-interview-preparing/57.jpg" />
 <div>MobileNet V2总体结构</div>
 </center>
+
+#### MobileNet V3(2019)
+0.网络的架构基于NAS实现的MnasNet（效果比MobileNetV2好）
+1.引入MobileNetV1的深度可分离卷积
+2.引入MobileNetV2的具有线性瓶颈的倒残差结构
+3.引入基于squeeze and excitation结构的轻量级注意力模型(SE)
+4.使用了一种新的激活函数h-swish(x)
+5.网络结构搜索中，结合两种技术：资源受限的NAS（platform-aware NAS）与NetAdapt
+6.修改了MobileNetV2网络端部最后阶段
+
+SE Block    https://zhuanlan.zhihu.com/p/47494490   SENet继残差设计之后，成为神经网络另外一个标配。
+h-swish激活函数 https://zhuanlan.zhihu.com/p/70703846
+待补充
 
 ### SENet
 ### Stacked Hourglass Networks
@@ -669,6 +689,7 @@ LeNet有一个很有趣的地方，就是S2层与C3层的连接方式。在原�
 规定左上角为(0,0)，右下角为(5,15)，那么在(n,m)位置的“X”表示S2层的第n个feature map与C3层的第m个kernel进行卷积操作。例如说，C3层的第0个kernel只与S2层的前三个feature map有连接，与其余三个feature map是没有连接的；C3层的第15个kernel与S2层的所有feature map都有连接。这难道不就是ShuffleNet？
 
 ## 实例分割
+### FCN
 
 ## 目标检测与识别
 ### 目标检测发展历程
@@ -1124,10 +1145,137 @@ Dropout通常用于全连接层中和输入层中，很少见到卷积层后接D
 
 ## 竞赛相关
 ### Cascade rcnn
-### DCN
+介绍Cascade rcnn前，需要先对Faster rcnn的流程进行回顾。
+<center>
+<img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2020-03-11-cv-interview-preparing/58.jpg" />
+<div>Faster rcnn两个阶段流程</div>
+</center>
+Faster rcnn中用到IoU阈值的有两个地方，分别时training时positive与negative的判定，和inference时计算mAP。论文中强调的IoU阈值指的是training时positive与negative的判定。
+IoU阈值是一组需要精心挑选的超参数，IoU阈值取得越高，得到的positive样本更接近目标，因此训练得出的检测器定位更加精准。但是一味提高IoU阈值会引发两个问题，一是正样本过少导致训练的过拟合问题，二是训练和测试使用不同的阈值导致评估性能的下降。反之，IoU阈值选取的越低，得到的正样本更为丰富，有利于检测器的训练，但必然会导致测试时出现大量的虚检（close but not correct）。作者做了以下实验进行了佐证：
+<center>
+<img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2020-03-11-cv-interview-preparing/59.jpg" />
+<div>作者的实验</div>
+</center>
+上图(c)中给出了经过一次回归之后，目标候选框与GT目标框匹配的IoU的变化，横轴代表回归前的IoU，纵轴代表回归后的IoU，不同颜色的曲线代表的是不同阈值训练的检测器。总体而言，经过回归后，目标候选框的IoU均有所提升，但是区别在于：IoU在0.55-0.6之间时，基于0.5的IoU阈值训练的回归器输出结果最佳（蓝色线）；IoU在0.6-0.75之间，基于0.6的IoU阈值训练的回归器输出结果最佳（绿色线）；IoU在0.75以上，基于0.7阈值训练出的回归器输出最佳（红色线）。以上结果表明，要得到定位精度较高的检测器（即IoU越大越好），必须选用较大的IoU阈值。  
+而图(d)中的结果表明，基于0.7IoU阈值训练出的检测器的AP反而是最差的，只有在选用IoU阈值为0.85以上进行评测时，结果才略好与蓝色线，依然劣于绿色线，验证了之前的分析：基于0.7IoU阈值训练出的检测器中正样本过少，因为正样本的多样性不够，容易导致训练的过拟合，因此在验证集上表现不佳。  
+作者由此探索是否有一种方法既能用较高的IoU阈值训练检测器，又能保证正样本的多样性足够丰富，提出了Cascade R-CNN，其核心思想就是“分而治之”。Cascade R-CNN是一个顺序的多阶段extension，利用前一个阶段的输出进行下一阶段的训练，阶段越往后使用更高的IoU阈值，产生更高质量的bndbox。Cascade R-CNN简单而有效，能直接添加到其它R-CNN型detector中，带来巨大的性能提升(2-4%)。
+<center>
+<img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2020-03-11-cv-interview-preparing/60.jpg" />
+<div>Cascade R-CNN与其他结构对比</div>
+</center>
+上图中的(b)与Cascade R-CNN的结构极为相似，区别在于只在测试时使用级联结构对Box多次回归，因此ROI检测网络部分“H1”是相同的，也意味着训练时使用的是单一的IoU阈值。这样做会带来以下问题：目标候选框经过0.5IoU阈值的检测器后样本的分布已经发生了改变。
+<center>
+<img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2020-03-11-cv-interview-preparing/61.jpg" />
+<div>样本分布在各个stage的变化</div>
+</center>
+可以看到每经过一次回归，样本都更靠近gt一些，样本的分布也在逐渐变化，如果还用0.5的IoU阈值，后面两个stage就会有较多的离群点，使用共享的H无法适应这样的样本分布的变化。
+
+在Cascade RCNN的前向预测结构图中可以发现RPN输出的B0经过cascade检测分支，进阶提升的方式输出更精准的B1、B2、B3，最后以B3输出的bbox为最终结果，那么问题来了：C1、C2、C3输出的分类结果，我们应该信哪个？是按照C3的结果输出吗？  
+结合deploy.prototxt，可以发现是对C1、C2、C3三个分类结果求和取平均；但我在想，理论上H3输出的bbox更精准，C3的分类结果应该会更准，此时对C1、C2、C3三个分类结果加权求和会不会更好一点？
+
+其实总结起来，Cascade R-CNN的思想就是级联IoU阈值不同且逐渐升高的RCNN Head，将前一个Head输出的预测框作为后一个Head的Proposal输入，以逐渐提高回归的精度。同时也能消除因为IoU阈值一次性设置过高而引起的正样本多样性不足带来的过拟合问题。
+
+其余细节可参考：
+https://zhuanlan.zhihu.com/p/42553957
+https://zhuanlan.zhihu.com/p/45036212
+https://zhuanlan.zhihu.com/p/45037103
+https://zhuanlan.zhihu.com/p/45331020
+https://zhuanlan.zhihu.com/p/45421606
+
+### DCN V1（Deformable Conv）（2017）
+动机
+
+我们都知道常规的卷积和池化这些操作，无论如何叠加，基本上得到的都是矩形框，这是不切合实际的，对不规则目标建模时会有非常大的局限性。通常解决这类问题的方法有两类：一是在数据集上进行扩增，让训练集包含所有可能的几何变化，例如使用仿射变换做数据增强，但这不是对所有场景都适用的；另一种是设计对几何变化不敏感的特征和算法，例如SIFT，这种方法在应对没有考虑到的或过于复杂的形变时较为无力。  
+导致上述问题的根本原因，还是在于CNN的过于固定的采用操作。实际上CNN是不具有旋转不变性和尺度不变性的，因此通常只能使用上述的第一类方法增强对不规则目标的建模。但这对于不规则的物体还是过于僵硬了，比如同一层特征图的不同位置对应的是不同形状的物体，但都是通过同一个卷积做计算。
+
+空洞卷积
+在介绍DCN之前，我们需要先对空洞卷积有一定的认识。  
+通常为了在增大感受野的同时不增大卷积核尺寸，需要对图像进行池化下采样。但是池化后，不可避免的将会丢失一些信息。在例如图像分割任务中，需要的是pixel-wise的输出，因此我们需要一种新的操作，不通过pooling也能有较大的感受野以获取更多的信息。空洞卷积（Delated conv）应运而生。
+<center>
+<img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2020-03-11-cv-interview-preparing/62.jpg" />
+<div>空洞卷积示意图</div>
+</center>
+(a)普通卷积，1-dilated conv，卷积核的感受野为3×3
+
+(b)空洞卷积，2-dilated conv，卷积核的感受野为7×7  
+此时实际的卷积核尺寸还是3×3，但是空洞为1，也就是对于一个7×7的图像patch，只有9个红色的点与3×3卷积核进行卷积，其余点都略过.也可以理解为卷积核的尺寸为7×7，但只有图中9个点的权重不为0，其余都为0。可以看到虽然卷积核尺寸只有3×3，但是这个卷积的感受野已经增大到7×7了（如果考虑到这个2-dilated conv的前一层是一个1-dilated conv 的话，那么每个红点就是1-dilated的卷积输出，所以感受野为3x3，所以1-dilated和2-dilated合起来就能达到7x7的conv）。
+
+(c)空洞卷积，4-dilated conv，卷积核的感受野为15×15  
+跟在两个1-dilated和2-dilated conv之后，能到达15×15的感受野。与传统的3个3×3卷积核堆叠的7×7感受野（与层数成线性关系）相比，空洞卷积的感受野是指数级的增长。
+
+空洞卷积与普通卷积相比，除了卷积核的大小之外，还有一个膨胀率（dilation rate）的参数，用于表示膨胀的大小。
+
+总的来说，空洞卷积的优点在于不进行pooling损失信息的情况下，扩大了卷积核的感受野，同时保证卷积核参数量和输出的特征图的大小不变。
+
+DCN感觉是更为自由的dilated conv，同时还增加了池化上的deform。DCN主要包含了两个模块，Deformable Conv和Deformable Pooling。他们的优点是很方便的就能嵌入已有的模型中，不需要额外的监督信号。
+
+Deformable Conv
+<center>
+<img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2020-03-11-cv-interview-preparing/68.jpg" />
+<div>Standard Conv和Deformable Conv</div>
+</center>
+我们先看看一般的卷积是怎么计算输出特征图上每个点的值的：
+<center>
+<img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2020-03-11-cv-interview-preparing/65.jpg" />
+<div>一般卷积的计算</div>
+</center>
+p0是一个卷积核的中心点，pn是（3×3）卷积核的九个位置。可变形卷积就是在$x(p_0+p_n)$上再加个偏移量：
+<center>
+<img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2020-03-11-cv-interview-preparing/66.jpg" />
+<div>DCN v1 Deformable Conv的计算</div>
+</center>
+实际中，偏移量$\delta p_n$往往是小数，因此需要使用双线性插值计算这个添加了偏移量的点的数值。双线性插值如何计算，可参考[RoI align](#roi-align)中的相关公式。
+
+那么这个偏移量是怎么来的？  
+<center>
+<img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2020-03-11-cv-interview-preparing/64.jpg" />
+<div>Deformable Conv</div>
+</center>
+对于特征图上的每个位置，都生成2*kernel_w*kernel_h个偏移，即2*kernel_w*kernel_h个channels的offset field，分别对应着kernel中每个位置的x,y偏移量。offset field的w和h为特征图的w和h。
+
+Deformable RoI Pooling
+<center>
+<img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2020-03-11-cv-interview-preparing/67.jpg" />
+<div>Deformable RoI Pooling</div>
+</center>
+先用标准的ROI pooling生成真正的pooled feature maps，然后利用一个fc layer生成normalized offsets，最后将其乘上ROI的size（pooling前）得到真正的offsets。使用真正的offsets对ROI pooling产生的bin进行偏移。
+<center>
+<img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2020-03-11-cv-interview-preparing/71.jpg" />
+<div>DCN v1 Deformable RoI Pooling计算公式</div>
+</center>
+
+通过增加了卷积和池化的可变性，在参数量和推理时间没有显著增加的情况下，使得语义分割和目标检测的精度达到了一定的提升。
+
+### DCN V2（2018）
+DCN V1的缺点  
+因为学习到的offsets不可控，因此可能会引入过多的context，对于positive样本来说，如果采样的特征包含了过多超出ROI的内容，那么结果将会受到影响和干扰。但是对于negative样本则恰恰相反，引入一些超出ROI的特征是有助于帮助网络判别这个区域是背景区域。
+
+V2的改进主要在于  
+1. 增加更多的Deformable Conv，V1中只有ResNet50的Conv5 stage（3层）中有Deformable Conv，V2中把Conv3-Conv5的3×3Conv（13层，4+6+3，作者说是12层，应该是笔误）都换成了Deformable Conv。
+2. 让Deformable Conv不仅能学习offset，还学习每个采样点的权重。   
+在DCN V2特征图上每个点的值的计算公式如下:  
+<center>
+<img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2020-03-11-cv-interview-preparing/69.jpg" />
+<div>DCN v2 Deformable Conv计算公式</div>
+</center>
+通过引入$\delta m_k$的权重，可以将不想要的采样点权重学成0。  
+同样的，Deformable RoI Pooling也可以引入权重。
+<center>
+<img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2020-03-11-cv-interview-preparing/70.jpg" />
+<div>DCN v2 Deformable RoI Pooling计算公式</div>
+</center>
+
+3. RCNN mimicking  
+暂时不深入了解，可以参考：  
+https://blog.csdn.net/u014380165/article/details/88072737  
+https://zhuanlan.zhihu.com/p/90049906  
+https://www.zhihu.com/question/303900394/answer/540818451
+
+
 ### FPN
 ### NAS
 ### ROI Align
+双线性插值公式
 ### Smooth L1 loss
 ### Focal loss
 ### OHEM
@@ -1138,6 +1286,7 @@ Dropout通常用于全连接层中和输入层中，很少见到卷积层后接D
 ### FairMOT
 ### 卡尔曼滤波
 ### 匈牙利算法
+### 级联匈牙利算法
 
 ## 智力题
 
@@ -1209,7 +1358,8 @@ DenseNet
 * [](https://zhuanlan.zhihu.com/p/47391705)
 
 MobileNet
-
+https://zhuanlan.zhihu.com/p/70703846
+https://zhuanlan.zhihu.com/p/80041030
 
 
 各种细节
