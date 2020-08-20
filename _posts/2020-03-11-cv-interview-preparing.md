@@ -2,7 +2,7 @@
 layout: post
 title:  "CV方向的面试准备"
 date:   2020-03-11 18:11:00 +0800
-categories: CV面试准备
+categories: 面试准备
 tags: interview ComputerVision
 author: ac酱
 mathjax: true
@@ -916,13 +916,13 @@ $x，x_a，x^\*$分别对应预测框，anchor框，ground truth框的中心点x
 <div>Fast R-CNN training</div>
 </center>
 
-1. 使用ImageNet预训练后的参数将模型初始化，对RPN进行训练。
-2. 通过训练后的RPN得到Region proposals。
-3. 训练Fast R-CNN（除RPN以外的部分称为Fast R-CNN）  
-使用ImageNet预训练后的参数将模型初始化，与训练RPN时的卷积层不共享，由训练好的RPN提供Region proposals。
+1. 使用ImageNet预训练后的参数将模型初始化，对RPN进行训练。  
+2. 通过训练后的RPN得到Region proposals。  
+3. 训练Fast R-CNN（除RPN以外的部分称为Fast R-CNN）   
+使用ImageNet预训练后的参数将模型初始化，与训练RPN时的卷积层不共享，由训练好的RPN提供Region proposals。  
 4. 调优RPN  
-使用训练Fast R-CNN得到的卷积层参数对其初始化，固定卷积层参数，finetune剩余层。得到更精细的Region proposals。
-5. 通过调优后的RPN得到Region proposals。
+使用训练Fast R-CNN得到的卷积层参数对其初始化，固定卷积层参数，finetune剩余层。得到更精细的Region proposals。  
+5. 通过调优后的RPN得到Region proposals。  
 6. 调优Fast R-CNN  
 与调优RPN时的卷积层共享，固定卷积层参数，finetune剩余层。由调优好的RPN提供更精细的Region proposals。
 
@@ -1142,6 +1142,54 @@ Dropout通常用于全连接层中和输入层中，很少见到卷积层后接D
 ### 预处理方法
 
 ## 项目相关
+### Openpose
+Openpose实现了二维单张图片的多人关键点实时识别，是一种`bottom-up`的方法。相比于将多人姿态估计问题转化为单人姿态估计问题的top-down，bottom-up方法首先检测出图中所有人的所有关键点，再对关键点进行分组，进而组装成多个人。因此这种方法的`性能不会受到detector性能的影响`，且`运行时间不会随着图片中人数增加而增加`。  
+其核心为CPM+PAF，那么就来简单了解一下这两个部分分别是什么吧。
+#### CPM
+CPM，Convolutional pose machines，是Openpose的前身，是CMU2015年的一个工作。这个工作主要针对的是单人的姿态估计。使用神经网络同时学习`图片特征(image features)`和`空间信息(spatial context)`。首先使用多个CNN进行图片特征的提取，再采用一个multi-stage的结构来学习空间信息。具体来说，每个stage的输入是原始图片特征和上个阶段输出的`信念图`(belief map)，这个belief map可以认为是之前的stage学到的`空间信息的一个encording`。这样当前stage根据这两种信息继续通过卷积层提取信息，并产生新的belief map，这样经过`不断的refinement`，最后产生一个较为准确的结果。
+<center>
+<img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2020-03-11-cv-interview-preparing/73.jpg" />
+<div>CPM</div>
+</center>
+
+下图可以明显看出空间信息的重要性，也展现了refinement的过程。
+
+<center>
+<img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2020-03-11-cv-interview-preparing/74.jpg" />
+<div>CPM为什么要堆叠多个stage</div>
+</center>
+
+在stage1中出现了相对较多的错误定位，在stage2中由于有了stage1提供的空间信息，根据其他部位的位置可以对某个部位的位置进行纠正，后续的多个stage实际上也是在对前一个stage的belief map进行refinement，最后得到一个最为精确的belief map。  
+此外，这篇文章还提出了很重要的一点，就是`通过中继监督(intermediate supervision)来解决梯度消失`的问题。由于CPM包含了多个stage，因此网络的深度较深，容易出现梯度消失的问题导致网络无法收敛。在每个stage结束后给当前的belief map加一个监督，可以有效缓解梯度消失的问题，这在multi-stage网络中是一种较为常用的技巧。
+#### PAF
+PAF是Openpose的一个主要创新点，实际上就是在关键点之间建立的一个向量场，`描述一个肢干(limb)的方向`。有了描述关键点位置的heatmap（类似CPM的结果）和描述关键点间关系的PAF，使用二分图最大权匹配算法来对关键点进行组装，从而得到人体骨架。
+
+<center>
+<img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2020-03-11-cv-interview-preparing/75.jpg" />
+<div>Openpose</div>
+</center>
+
+F表示经过vgg-19前几层cnn提取得到的特征图，S和L分别表示heatmap和PAF，两者的数量分别为关键点的数量和肢干（应该×2，因为是二维向量）的数量，且两者都是pixel-wise的。这里与CPM很相似，都是使用多个stage不断进行refinement，后一阶段的输入是前一阶段的S、L和初始的F的结合。  
+
+那么heatmap和PAF的GT是怎么得到的呢？  
+对于heatmap来说，x，y上为某个人的某个关键点，则以其为中心，在对应的heatmap上使用`二维高斯核`对其进行处理，将点转换成峰值区域(peak)，如果一张图片中有多个人的同一个关键点出现了重叠，那么对GT的该层heatmap上重叠区域的`每个像素点取max`。  
+PAF的GT，实际上是从连接的关键点a到关键点b的单位向量，每个肢干将会生成一个矩形范围（通过一个阈值进行设置），在矩形范围中的每个点都被认为是在肢干上，这些`点的值即为单位向量`（有x分量和y分量，因此一个肢干需要用两个vector map描述）。在矩形范围外的点为零向量。对于重叠的肢干区域，重叠区域的值`取平均值`进行计算（非零向量才参与均值计算）。
+
+<center>
+<img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2020-03-11-cv-interview-preparing/76.jpg" />
+<div>PAF的GT计算</div>
+</center>
+
+至于loss的计算，就是对每个stage的S和L分别计算`L2 loss`，最后所有stage的loss相加即可。
+
+通过nms找出heatmap上每个part的候选点，再通过PAF选出真正的肢干。定义两个关键点之间组合的权值，实际上就是两点间各个像素点的PAF在两点组成的线段上投影的积分，如果各点的PAF方向与线段的方向越一致，权值就越大，这两点组成一个肢干的可能性就越大。
+
+知道了如何计算两个候选点之间组合的权值，对于任意两个part对应的候选点集合，我们使用二分图最大权匹配算法可以给出一组匹配。但如果考虑了所有part之间的PAF，这将会是一个K分图最大权匹配问题，是NP-Hard问题。通过简化，可以将原问题划分为若干个二分图最大权匹配问题（匈牙利算法）。（这部分不太理解，有时间可以继续看看）  
+(参见)[https://zhuanlan.zhihu.com/p/104917833]
+
+#### 缺点
+1. 消耗显存
+2. 特殊场景下检测效果差
 
 ## 竞赛相关
 ### Cascade rcnn
@@ -1282,11 +1330,60 @@ https://www.zhihu.com/question/303900394/answer/540818451
 ### Soft-NMS
 ### MMDetection
 
+### SORT
+<center>
+<img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2020-03-11-cv-interview-preparing/77.jpg" />
+<div>SORT算法流程</div>
+</center>
+
+Simple Online and Realtime Tracking，于2016年被提出，主要由三部分组成：目标检测，卡尔曼滤波，匈牙利算法。
+#### 目标检测
+目标检测在此不展开说明，作者使用的是Faster RCNN来获得bbox，也可替换为其他的检测算法。值得一提的是作者发现`目标跟踪质量的好坏与检测算法的性能有很大的关系`，通过使用先进的检测算法，跟踪结果的质量能够显著提升。
+#### 卡尔曼滤波
+得到bbox后，我们是否就知道目标的准确位置了呢？从严格上来说，不是的。因为测量总是存在误差的，我们的通过目标检测得到的bbox会不可避免地带有噪声，导致bbox的位置不够精确。  
+卡尔曼滤波可以通过利用数学模型预测的值（`根据1~t-1帧中目标的bbox，预测得到的第t帧的bbox`）和测量得到的观测值（`使用检测器检测得到的第t帧的bbox`）进行数据融合（先预测t帧bbox，使用匈牙利算法与t帧检测得到的bbox进行匹配，再更新），找到“最优”（均方差最小）的估计值。  
+总之卡尔曼滤波是一种去噪技术，能够在目标检测的基础上，通过预测结果进行结合，得到更为准确的bbox。
+#### 匈牙利算法
+匈牙利算法是一种数据关联算法，从本质上讲，跟踪算法要解决的就是`数据关联`问题，所以匈牙利算法的任务就是把t帧的bbox和t-1帧的bbox两两匹配（求解二分图的最大匹配，KM算法）。匈牙利算法依据的准则是“损失最小”，在SORT中利用预测得到的bbox和检测得到的bbox的交并比(IOU)来定义损失矩阵，例如损失矩阵$cost_{ij}$就表示前一帧第i个bbox（应该是根据前t-1帧预测得到的当前帧的第i个bbox？）与这一帧第j个bbox的IOU。  
+匹配有三种结果:  
+1. Unmatched Tracks，这部分被认为是失配，Detection和Track无法匹配，如果失配持续了$T_{lost}$次，该目标ID将从图片中删除。
+2. Unmatched Detections, 这部分说明没有任意一个Track能匹配Detection, 所以要为这个detection分配一个新的track。
+3. Matched Track，这部分说明得到了匹配。
+
+优点：
+1. 速度快
+2. 在没有遮挡的情况下准确度很高
+
+缺点：  
+1. 对物体遮挡几乎没有处理，导致id switch次数很多
+2. 有遮挡的情况下准确度很低
+
 ### DeepSort
+<center>
+<img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2020-03-11-cv-interview-preparing/78.jpg" />
+<div>DeepSORT算法流程</div>
+</center>
+
+DeepSORT相比于SORT，最大的特点就是`加入了外观信息`，借用了`ReID模型`来提取特征，减少了id switch的次数。此外还加入了`级联匹配机制`和`新轨迹的确认`。
+
+<center>
+<img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2020-03-11-cv-interview-preparing/79.jpg" />
+<div>DeepSORT的级联匹配</div>
+</center>
+
+上图清晰地解释了如何进行级联匹配，上图由虚线划分为两部分：  
+上半部分中计算`相似度矩阵`的方法使用到了`外观模型（ReID）和运动模型（马氏距离）`来计算相似度，得到代价矩阵，另一个是`门控矩阵`，用于限制代价矩阵中过大的值（通过设定阈值及最大距离）。  
+下半部分中是级联匹配的数据关联步骤，匹配过程是一个循环（max age个迭代，默认为70），也就是从missing age=0~70的轨迹和detections进行匹配，`没有丢失过的轨迹优先匹配，丢失较为久远的就靠后匹配`。通过这部分处理，可以`重新将被遮挡的目标找回`，降低被遮挡然后再次出现的目标发生id switch的次数。
+
+对于级联匹配失败的目标再进行IoU匹配，这部分于SORT中的几乎相同，但是在处理`未匹配的轨迹`，增加了确认(confirmed)状态和未确认(unconfirmed)状态。在轨迹为`未确认状态`和`在确认状态下但未匹配次数大于max_age时`，出现未匹配的情况，`直接将该轨迹删除`，否则继续保留该轨迹用于卡尔曼滤波。  
+对于一个处于未确认状态的轨迹，需要`连续匹配n_init次`后才能转换为确认状态。且未确认状态的轨迹只用于IoU匹配，确认状态的轨迹只用于级联匹配。
+
+<center>
+<img src="https://raw.githubusercontent.com/changwh/changwh.github.io/master/_posts/res/2020-03-11-cv-interview-preparing/80.jpg" />
+<div>Track的状态转换</div>
+</center>
+
 ### FairMOT
-### 卡尔曼滤波
-### 匈牙利算法
-### 级联匈牙利算法
 
 ## 智力题
 
